@@ -16,6 +16,7 @@ class LoginWindow(ctk.CTk):
         self.geometry("940x600")
         self.resizable(False, False)
         self.configure(fg_color=BG_DARK)
+        set_window_icon(self)
 
         self.update_idletasks()
         x = (self.winfo_screenwidth()  // 2) - 470
@@ -80,7 +81,7 @@ class LoginWindow(ctk.CTk):
             ctk.CTkLabel(row, text=f"  {ico}  {lbl}",
                          font=FONT_SMALL, text_color=TEXT_ACCENT).pack()
 
-        ctk.CTkLabel(left, text="v1.0  •  University Project",
+        ctk.CTkLabel(left, text="v1.0",
                      font=FONT_TINY, text_color=TEXT_MUTED
                      ).place(relx=0.5, rely=0.96, anchor="center")
 

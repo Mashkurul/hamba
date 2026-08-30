@@ -2,6 +2,9 @@
 # gui/theme.py - Color Theme & Style Constants
 # =============================================================
 
+import os
+import sys
+
 # ── Color Palette ──
 PRIMARY        = "#40916C"
 PRIMARY_HOVER  = "#2D6A4F"
@@ -87,3 +90,26 @@ def color_alpha(hex_color: str, alpha: float = 0.35) -> str:
     ng = int(g * (1 - alpha) + bg * alpha)
     nb = int(b * (1 - alpha) + bb * alpha)
     return f"#{nr:02X}{ng:02X}{nb:02X}"
+
+
+def app_icon_path() -> str:
+    """Resolve the HAMBA icon path, works in source and PyInstaller builds."""
+    base = getattr(sys, "_MEIPASS", os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+    return os.path.join(base, "assets", "hamba.ico")
+
+
+def set_window_icon(window) -> None:
+    """Set the cow icon on a window's titlebar/taskbar (Windows)."""
+    try:
+        import tkinter as tk
+        from PIL import Image, ImageTk
+        path = app_icon_path()
+        if os.path.exists(path):
+            img = Image.open(path)
+            # Windows titlebar wants a small icon
+            photo = ImageTk.PhotoImage(img.resize((32, 32)))
+            window.iconphoto(False, photo)
+            # Keep a reference so it isn't garbage-collected
+            window._icon_ref = photo
+    except Exception:
+        pass

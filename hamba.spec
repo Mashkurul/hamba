@@ -24,6 +24,7 @@ a = Analysis(
         ("models",    "models"),
         ("modules",   "modules"),
         ("gui",       "gui"),
+        ("assets",    "assets"),
         ("config.py", "."),
         ("database.py", "."),
     ],
@@ -64,7 +65,7 @@ exe = EXE(
     target_arch=None,
     codesign_identity=None,
     entitlements_file=None,
-    icon=None,          # Add an .ico file path here if you have one
+    icon="assets/hamba.ico",   # HAMBA cow icon
 )
 
 coll = COLLECT(

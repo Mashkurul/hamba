@@ -25,6 +25,7 @@ ctk.set_appearance_mode("dark")
 ctk.set_default_color_theme("green")
 
 from database       import initialize_database
+from gui.splash       import SplashScreen
 from gui.login_window import LoginWindow
 from gui.main_window  import MainWindow
 
@@ -35,24 +36,28 @@ def run():
     # Step 1: Initialize database (creates tables + default admin)
     initialize_database()
 
-    # Step 2: Login → Main loop
-    while True:
-        # Show login window
-        login_win = LoginWindow()
-        login_win.mainloop()
+    # Step 2: Animated splash screen
+    app = ctk.CTk()
+    app.withdraw()          # hidden root while the splash plays
 
-        # Get result
-        user = login_win.logged_in_user
+    def start_login():
+        app.destroy()
+        # Step 3: Login → Main loop (returns to login after logout)
+        while True:
+            login_win = LoginWindow()
+            login_win.mainloop()
 
-        if user is None:
-            # User closed login window without logging in
-            break
+            user = login_win.logged_in_user
+            if user is None:
+                # User closed login window without logging in
+                break
 
-        # Step 3: Show main application window
-        main_win = MainWindow(user)
-        main_win.mainloop()
+            main_win = MainWindow(user)
+            main_win.mainloop()
+            # If main window was closed (logout), loop back to login
 
-        # If main window was closed (logout), loop back to login
+    SplashScreen(on_done=start_login)
+    app.mainloop()
 
 
 if __name__ == "__main__":

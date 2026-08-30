@@ -14,7 +14,6 @@ import os
 APP_NAME    = "HAMBA"
 APP_TITLE   = "HAMBA – AI Based Cow Management System"
 APP_VERSION = "1.0.0"
-APP_AUTHOR  = "University Project"
 
 # ---------------------------------------------------------
 # Database Configuration

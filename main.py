@@ -42,7 +42,6 @@ def show_banner():
     print_line()
     print(f"  {APP_TITLE}")
     print(f"  Version  : {APP_VERSION}")
-    print(f"  Project  : University Project")
     print_line()
     print()
 

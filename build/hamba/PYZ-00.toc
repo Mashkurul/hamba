@@ -1048,6 +1048,10 @@
    'D:\\PERSONAL PROJECT\\face scanner in '
    'python\\face_scanner\\HAMBA\\gui\\pages.py',
    'PYMODULE'),
+  ('gui.splash',
+   'D:\\PERSONAL PROJECT\\face scanner in '
+   'python\\face_scanner\\HAMBA\\gui\\splash.py',
+   'PYMODULE'),
   ('gui.theme',
    'D:\\PERSONAL PROJECT\\face scanner in '
    'python\\face_scanner\\HAMBA\\gui\\theme.py',

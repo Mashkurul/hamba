@@ -19,6 +19,7 @@ class MainWindow(ctk.CTk):
         self.geometry("1300x780")
         self.minsize(980, 640)
         self.configure(fg_color=BG_DARK)
+        set_window_icon(self)
 
         self.update_idletasks()
         x = (self.winfo_screenwidth()  // 2) - 650

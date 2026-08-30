@@ -146,4 +146,4 @@ The AI assistant is **rule-based** (no API required):
 
 ---
 
-*HAMBA – University Project*
+*HAMBA*

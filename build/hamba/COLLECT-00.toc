@@ -3786,6 +3786,14 @@
    'C:\\Users\\Dev '
    'Udoy\\AppData\\Local\\Python\\pythoncore-3.14-64\\DLLs\\_zstd.pyd',
    'EXTENSION'),
+  ('assets\\hamba.ico',
+   'D:\\PERSONAL PROJECT\\face scanner in '
+   'python\\face_scanner\\HAMBA\\assets\\hamba.ico',
+   'DATA'),
+  ('assets\\hamba.png',
+   'D:\\PERSONAL PROJECT\\face scanner in '
+   'python\\face_scanner\\HAMBA\\assets\\hamba.png',
+   'DATA'),
   ('base_library.zip',
    'D:\\PERSONAL PROJECT\\face scanner in '
    'python\\face_scanner\\HAMBA\\build\\hamba\\base_library.zip',
@@ -4046,6 +4054,10 @@
    'D:\\PERSONAL PROJECT\\face scanner in '
    'python\\face_scanner\\HAMBA\\gui\\__pycache__\\pages.cpython-314.pyc',
    'DATA'),
+  ('gui\\__pycache__\\splash.cpython-314.pyc',
+   'D:\\PERSONAL PROJECT\\face scanner in '
+   'python\\face_scanner\\HAMBA\\gui\\__pycache__\\splash.cpython-314.pyc',
+   'DATA'),
   ('gui\\__pycache__\\theme.cpython-314.pyc',
    'D:\\PERSONAL PROJECT\\face scanner in '
    'python\\face_scanner\\HAMBA\\gui\\__pycache__\\theme.cpython-314.pyc',
@@ -4069,6 +4081,10 @@
   ('gui\\pages.py',
    'D:\\PERSONAL PROJECT\\face scanner in '
    'python\\face_scanner\\HAMBA\\gui\\pages.py',
+   'DATA'),
+  ('gui\\splash.py',
+   'D:\\PERSONAL PROJECT\\face scanner in '
+   'python\\face_scanner\\HAMBA\\gui\\splash.py',
    'DATA'),
   ('gui\\theme.py',
    'D:\\PERSONAL PROJECT\\face scanner in '
