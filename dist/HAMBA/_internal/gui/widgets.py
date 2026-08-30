@@ -1,13 +1,5 @@
 # =============================================================
-# gui/widgets.py - Reusable Custom Widgets
-# =============================================================
-# Contains reusable UI components used throughout the app:
-#   - StyledButton, DangerButton
-#   - StyledEntry, StyledLabel
-#   - SectionCard, PageHeader
-#   - DataTable (ttk.Treeview wrapper)
-#   - FormDialog (popup form base)
-#   - StatusBar, NotificationBar
+# gui/widgets.py - All Reusable Widgets
 # =============================================================
 
 import tkinter as tk
@@ -16,383 +8,382 @@ import customtkinter as ctk
 from gui.theme import *
 
 
-# ---------------------------------------------------------
-# Primary Action Button
-# ---------------------------------------------------------
+# ── Buttons ──────────────────────────────────────────────────
+
 class PrimaryButton(ctk.CTkButton):
-    """Green primary action button."""
-    def __init__(self, master, text, command=None, width=140, **kwargs):
-        super().__init__(
-            master,
-            text=text,
-            command=command,
-            width=width,
-            height=BTN_HEIGHT,
-            corner_radius=BTN_CORNER,
-            fg_color=PRIMARY,
-            hover_color=PRIMARY_HOVER,
-            text_color=TEXT_PRIMARY,
-            font=FONT_BTN,
-            **kwargs
-        )
+    def __init__(self, master, text, command=None, width=140, **kw):
+        super().__init__(master, text=text, command=command,
+                         width=width, height=BTN_HEIGHT, corner_radius=BTN_CORNER,
+                         fg_color=PRIMARY, hover_color=PRIMARY_HOVER,
+                         text_color=TEXT_PRIMARY, font=FONT_BTN, **kw)
 
-
-# ---------------------------------------------------------
-# Danger / Delete Button
-# ---------------------------------------------------------
 class DangerButton(ctk.CTkButton):
-    """Red button for destructive actions."""
-    def __init__(self, master, text, command=None, width=120, **kwargs):
-        super().__init__(
-            master,
-            text=text,
-            command=command,
-            width=width,
-            height=BTN_HEIGHT,
-            corner_radius=BTN_CORNER,
-            fg_color=DANGER,
-            hover_color=DANGER_HOVER,
-            text_color=TEXT_PRIMARY,
-            font=FONT_BTN,
-            **kwargs
-        )
+    def __init__(self, master, text, command=None, width=120, **kw):
+        super().__init__(master, text=text, command=command,
+                         width=width, height=BTN_HEIGHT, corner_radius=BTN_CORNER,
+                         fg_color=DANGER, hover_color=DANGER_HOVER,
+                         text_color=TEXT_PRIMARY, font=FONT_BTN, **kw)
 
-
-# ---------------------------------------------------------
-# Secondary / Outline Button
-# ---------------------------------------------------------
 class SecondaryButton(ctk.CTkButton):
-    """Subtle grey secondary button."""
-    def __init__(self, master, text, command=None, width=120, **kwargs):
-        super().__init__(
-            master,
-            text=text,
-            command=command,
-            width=width,
-            height=BTN_HEIGHT,
-            corner_radius=BTN_CORNER,
-            fg_color=CARD_BG,
-            hover_color=BG_LIGHT,
-            text_color=TEXT_PRIMARY,
-            border_color=BORDER,
-            border_width=1,
-            font=FONT_BTN,
-            **kwargs
-        )
+    def __init__(self, master, text, command=None, width=120, **kw):
+        super().__init__(master, text=text, command=command,
+                         width=width, height=BTN_HEIGHT, corner_radius=BTN_CORNER,
+                         fg_color=BG_LIGHT, hover_color=SIDEBAR_HOVER,
+                         text_color=TEXT_PRIMARY, border_color=BORDER,
+                         border_width=1, font=FONT_BTN, **kw)
 
-
-# ---------------------------------------------------------
-# Styled Label
-# ---------------------------------------------------------
 class StyledLabel(ctk.CTkLabel):
-    """Standard body text label."""
-    def __init__(self, master, text, font=None, text_color=None, **kwargs):
-        super().__init__(
-            master,
-            text=text,
-            font=font or FONT_BODY,
-            text_color=text_color or TEXT_PRIMARY,
-            **kwargs
-        )
+    def __init__(self, master, text, font=None, text_color=None, **kw):
+        super().__init__(master, text=text,
+                         font=font or FONT_BODY,
+                         text_color=text_color or TEXT_PRIMARY, **kw)
 
-
-# ---------------------------------------------------------
-# Styled Entry (text input)
-# ---------------------------------------------------------
 class StyledEntry(ctk.CTkEntry):
-    """Clean input field."""
-    def __init__(self, master, placeholder="", width=220, show=None, **kwargs):
-        kw = dict(
-            master=master,
+    def __init__(self, master, placeholder="", width=220, show=None, **kw):
+        cfg = dict(master=master, placeholder_text=placeholder,
+                   width=width, height=INPUT_HEIGHT, corner_radius=INPUT_CORNER,
+                   fg_color=INPUT_BG, border_color=BORDER,
+                   text_color=TEXT_PRIMARY, placeholder_text_color=TEXT_MUTED,
+                   font=FONT_BODY, **kw)
+        if show is not None:
+            cfg["show"] = show
+        super().__init__(**cfg)
+
+class StyledCombo(ctk.CTkComboBox):
+    def __init__(self, master, values, width=220, **kw):
+        super().__init__(master, values=values,
+                         width=width, height=INPUT_HEIGHT, corner_radius=INPUT_CORNER,
+                         fg_color=INPUT_BG, border_color=BORDER,
+                         text_color=TEXT_PRIMARY,
+                         button_color=PRIMARY, button_hover_color=PRIMARY_HOVER,
+                         dropdown_fg_color=CARD_BG,
+                         dropdown_text_color=TEXT_PRIMARY,
+                         dropdown_hover_color=PRIMARY,
+                         font=FONT_BODY, **kw)
+        if values:
+            self.set(values[0])
+
+
+# ── Password field with 👁 toggle ────────────────────────────
+
+class PasswordEntry(ctk.CTkFrame):
+    """
+    Password input with a show/hide eye button.
+    Can be used exactly like a normal entry field.
+    """
+    def __init__(self, master, placeholder="Enter password", width=300, **kw):
+        super().__init__(master, fg_color="transparent",
+                         width=width, height=INPUT_HEIGHT, **kw)
+        self.pack_propagate(False)
+        self._shown = False
+
+        self._entry = ctk.CTkEntry(
+            self,
             placeholder_text=placeholder,
-            width=width,
+            show="●",
+            width=width - 48,
             height=INPUT_HEIGHT,
             corner_radius=INPUT_CORNER,
             fg_color=INPUT_BG,
             border_color=BORDER,
             text_color=TEXT_PRIMARY,
             placeholder_text_color=TEXT_MUTED,
-            font=FONT_BODY,
-            **kwargs
+            font=FONT_BODY
         )
-        if show is not None:
-            kw["show"] = show
-        super().__init__(**kw)
+        self._entry.pack(side="left")
 
-
-# ---------------------------------------------------------
-# Styled Combobox (dropdown)
-# ---------------------------------------------------------
-class StyledCombo(ctk.CTkComboBox):
-    """Dropdown selector."""
-    def __init__(self, master, values, width=220, **kwargs):
-        super().__init__(
-            master,
-            values=values,
-            width=width,
+        self._eye_btn = ctk.CTkButton(
+            self,
+            text="👁",
+            width=42,
             height=INPUT_HEIGHT,
             corner_radius=INPUT_CORNER,
             fg_color=INPUT_BG,
+            hover_color=SIDEBAR_HOVER,
+            text_color=TEXT_MUTED,
             border_color=BORDER,
-            text_color=TEXT_PRIMARY,
-            button_color=PRIMARY,
-            button_hover_color=PRIMARY_HOVER,
-            dropdown_fg_color=CARD_BG,
-            dropdown_text_color=TEXT_PRIMARY,
-            dropdown_hover_color=PRIMARY,
-            font=FONT_BODY,
-            **kwargs
+            border_width=1,
+            font=("Segoe UI Emoji", 14),
+            command=self._toggle
         )
-        if values:
-            self.set(values[0])
+        self._eye_btn.pack(side="left", padx=(4, 0))
+
+    def _toggle(self):
+        self._shown = not self._shown
+        if self._shown:
+            self._entry.configure(show="")
+            self._eye_btn.configure(text="🙈", text_color=PRIMARY_LIGHT)
+        else:
+            self._entry.configure(show="●")
+            self._eye_btn.configure(text="👁", text_color=TEXT_MUTED)
+
+    # Proxy methods so callers treat this like a normal Entry
+    def get(self):               return self._entry.get()
+    def delete(self, a, b=None): self._entry.delete(a, b) if b else self._entry.delete(a, "end")
+    def insert(self, i, s):      self._entry.insert(i, s)
+    def focus(self):             self._entry.focus()
 
 
-# ---------------------------------------------------------
-# Section Card (container with rounded bg)
-# ---------------------------------------------------------
+# ── Layout helpers ───────────────────────────────────────────
+
 class SectionCard(ctk.CTkFrame):
-    """Rounded dark card for grouping content."""
-    def __init__(self, master, **kwargs):
-        super().__init__(
-            master,
-            fg_color=CARD_BG,
-            corner_radius=CARD_CORNER,
-            **kwargs
-        )
+    def __init__(self, master, **kw):
+        super().__init__(master, fg_color=CARD_BG,
+                         corner_radius=CARD_CORNER,
+                         border_width=1, border_color=CARD_BORDER, **kw)
 
-
-# ---------------------------------------------------------
-# Page Header (title + subtitle)
-# ---------------------------------------------------------
 class PageHeader(ctk.CTkFrame):
-    """Top area showing current page title."""
-    def __init__(self, master, title, subtitle="", **kwargs):
-        super().__init__(
-            master,
-            fg_color="transparent",
-            **kwargs
-        )
-        ctk.CTkLabel(
-            self, text=title,
-            font=FONT_TITLE,
-            text_color=TEXT_PRIMARY
-        ).pack(anchor="w")
+    def __init__(self, master, title, subtitle="", **kw):
+        super().__init__(master, fg_color="transparent", **kw)
+        row = ctk.CTkFrame(self, fg_color="transparent")
+        row.pack(anchor="w", fill="x")
+        # Green accent bar on left (fixed height so it doesn't inflate the row)
+        ctk.CTkFrame(row, fg_color=PRIMARY, width=4, height=46,
+                     corner_radius=2).pack(side="left", padx=(0, 12))
+        col = ctk.CTkFrame(row, fg_color="transparent")
+        col.pack(side="left")
+        ctk.CTkLabel(col, text=title, font=FONT_TITLE,
+                     text_color=TEXT_PRIMARY).pack(anchor="w")
         if subtitle:
-            ctk.CTkLabel(
-                self, text=subtitle,
-                font=FONT_SMALL,
-                text_color=TEXT_MUTED
-            ).pack(anchor="w")
+            ctk.CTkLabel(col, text=subtitle, font=FONT_SMALL,
+                         text_color=TEXT_SECONDARY).pack(anchor="w")
+
+def form_row(parent, label, widget, pady=7):
+    """Label + input on one row. Returns the input widget.
+
+    `widget` may be a widget instance or a callable(row) that creates it.
+    Widgets must live INSIDE the row (created with the row as parent) so
+    customtkinter draws them correctly — reparenting with pack(in_=row)
+    breaks CTkEntry/CTkComboBox rendering.
+    """
+    row = ctk.CTkFrame(parent, fg_color="transparent")
+    row.pack(fill="x", padx=8, pady=pady)
+    ctk.CTkLabel(row, text=label, font=FONT_SMALL,
+                 text_color=TEXT_SECONDARY, width=130, anchor="w").pack(side="left")
+    if callable(widget):
+        widget = widget(row)
+    widget.pack(side="left", padx=(6, 0))
+    return widget
+
+def divider(parent, padx=16, pady=8):
+    ctk.CTkFrame(parent, fg_color=DIVIDER, height=1).pack(
+        fill="x", padx=padx, pady=pady)
 
 
-# ---------------------------------------------------------
-# Data Table using ttk.Treeview
-# ---------------------------------------------------------
+# ── Data Table ───────────────────────────────────────────────
+
 class DataTable(tk.Frame):
-    """
-    A scrollable table widget using ttk.Treeview.
-    Supports column headers, striped rows, and row selection.
-    """
+    def __init__(self, master, columns: list, **kw):
+        super().__init__(master, bg=CARD_BG, **kw)
 
-    def __init__(self, master, columns: list, **kwargs):
-        """
-        columns: list of (column_id, display_name, width) tuples
-        Example: [("id","ID",50), ("name","Name",150)]
-        """
-        super().__init__(master, bg=CARD_BG, **kwargs)
+        s = ttk.Style()
+        s.theme_use("clam")
+        s.configure("H.Treeview",
+                    background=TABLE_ODD, foreground=TEXT_PRIMARY,
+                    fieldbackground=TABLE_ODD, rowheight=34,
+                    font=FONT_TABLE, borderwidth=0)
+        s.configure("H.Treeview.Heading",
+                    background=TABLE_HEADER, foreground=TEXT_ACCENT,
+                    font=FONT_TABLE_H, relief="flat", padding=(10, 8))
+        s.map("H.Treeview",
+              background=[("selected", TABLE_SELECT)],
+              foreground=[("selected", TABLE_SEL_FG)])
+        s.map("H.Treeview.Heading", relief=[("active", "flat")])
+        s.configure("H.Vertical.TScrollbar",
+                    troughcolor=TABLE_HEADER, background=BORDER,
+                    bordercolor=TABLE_HEADER, arrowcolor=TEXT_MUTED)
+        s.configure("H.Horizontal.TScrollbar",
+                    troughcolor=TABLE_HEADER, background=BORDER,
+                    bordercolor=TABLE_HEADER, arrowcolor=TEXT_MUTED)
 
-        # Style the treeview
-        style = ttk.Style()
-        style.theme_use("clam")
-        style.configure(
-            "Hamba.Treeview",
-            background=TABLE_ODD,
-            foreground=TEXT_PRIMARY,
-            fieldbackground=TABLE_ODD,
-            rowheight=32,
-            font=FONT_TABLE,
-            borderwidth=0,
-        )
-        style.configure(
-            "Hamba.Treeview.Heading",
-            background=TABLE_HEADER,
-            foreground=TEXT_PRIMARY,
-            font=FONT_TABLE_H,
-            relief="flat",
-            padding=(8, 6),
-        )
-        style.map(
-            "Hamba.Treeview",
-            background=[("selected", PRIMARY)],
-            foreground=[("selected", TEXT_PRIMARY)],
-        )
-        style.map("Hamba.Treeview.Heading", relief=[("active", "flat")])
-
-        # Build column id list
-        col_ids   = [c[0] for c in columns]
-        col_names = {c[0]: c[1] for c in columns}
-        col_widths = {c[0]: c[2] for c in columns}
-
-        # Create Treeview
-        self.tree = ttk.Treeview(
-            self,
-            columns=col_ids,
-            show="headings",
-            style="Hamba.Treeview",
-            selectmode="browse",
-        )
-
-        # Configure columns
-        for col in columns:
-            cid, cname, cwidth = col
+        self.tree = ttk.Treeview(self, columns=[c[0] for c in columns],
+                                 show="headings", style="H.Treeview",
+                                 selectmode="browse")
+        self._col_count = len(columns)
+        for cid, cname, cw in columns:
             self.tree.heading(cid, text=cname)
-            self.tree.column(cid, width=cwidth, minwidth=40, anchor="center")
+            self.tree.column(cid, width=cw, minwidth=30, anchor="center")
 
-        # Scrollbars
-        vsb = ttk.Scrollbar(self, orient="vertical",   command=self.tree.yview)
-        hsb = ttk.Scrollbar(self, orient="horizontal", command=self.tree.xview)
+        vsb = ttk.Scrollbar(self, orient="vertical",   command=self.tree.yview,
+                            style="H.Vertical.TScrollbar")
+        hsb = ttk.Scrollbar(self, orient="horizontal", command=self.tree.xview,
+                            style="H.Horizontal.TScrollbar")
         self.tree.configure(yscrollcommand=vsb.set, xscrollcommand=hsb.set)
 
-        # Grid layout
         self.tree.grid(row=0, column=0, sticky="nsew")
-        vsb.grid(row=0, column=1, sticky="ns")
-        hsb.grid(row=1, column=0, sticky="ew")
+        vsb.grid(row=0,  column=1, sticky="ns")
+        hsb.grid(row=1,  column=0, sticky="ew")
         self.grid_rowconfigure(0, weight=1)
         self.grid_columnconfigure(0, weight=1)
 
-        # Tag for alternating row colors
         self.tree.tag_configure("odd",  background=TABLE_ODD)
         self.tree.tag_configure("even", background=TABLE_EVEN)
+        self.tree.tag_configure("hover", background=STAT_HOVER)
 
-    def load(self, rows: list):
-        """
-        Clear and reload table with new data.
-        rows: list of tuples/lists matching column order.
-        """
-        # Clear existing rows
-        for item in self.tree.get_children():
-            self.tree.delete(item)
+        # Row hover highlight (restores zebra color on leave)
+        self._hover_item = None
+        self.tree.bind("<Motion>", self._on_motion)
 
-        # Insert new rows with alternating colors
-        for i, row in enumerate(rows):
-            tag = "even" if i % 2 == 0 else "odd"
-            self.tree.insert("", "end", values=row, tags=(tag,))
+    def _on_motion(self, event):
+        item = self.tree.identify_row(event.y)
+        if item != self._hover_item:
+            if self._hover_item:
+                tags = self.tree.item(self._hover_item, "tags")
+                # restore previous zebra tag
+                idx = int(self.tree.index(self._hover_item))
+                zebra = ("even" if idx % 2 == 0 else "odd")
+                self.tree.item(self._hover_item, tags=(zebra,))
+            self._hover_item = item
+            if item:
+                self.tree.item(item, tags=("hover",))
+
+    def load(self, rows):
+        for i in self.tree.get_children():
+            self.tree.delete(i)
+        self._hover_item = None
+        if not rows:
+            empty = [""] * self._col_count
+            empty[1] = "No records found"
+            self.tree.insert("", "end", values=empty)
+            return
+        for i, r in enumerate(rows):
+            self.tree.insert("", "end", values=r,
+                             tags=("even" if i % 2 == 0 else "odd",))
 
     def get_selected(self):
-        """Returns the values of the currently selected row, or None."""
-        selected = self.tree.selection()
-        if selected:
-            return self.tree.item(selected[0])["values"]
-        return None
+        sel = self.tree.selection()
+        return self.tree.item(sel[0])["values"] if sel else None
 
-    def bind_select(self, callback):
-        """Bind a callback when a row is clicked."""
-        self.tree.bind("<<TreeviewSelect>>", callback)
+    def bind_select(self, cb):
+        self.tree.bind("<<TreeviewSelect>>", cb)
 
 
-# ---------------------------------------------------------
-# Notification Banner (success / error / info)
-# ---------------------------------------------------------
+# ── Notification Bar ─────────────────────────────────────────
+
 class NotificationBar(ctk.CTkFrame):
-    """
-    A colored banner for showing success/error messages.
-    Automatically hides after a timeout.
-    """
+    def __init__(self, master, **kw):
+        super().__init__(master, fg_color="transparent", height=0, **kw)
+        self._lbl = ctk.CTkLabel(self, text="", font=FONT_SMALL,
+                                 text_color=TEXT_PRIMARY, fg_color="transparent")
+        self._lbl.pack(fill="x", padx=14, pady=6)
+        self._after = None
 
-    def __init__(self, master, **kwargs):
-        super().__init__(
-            master,
-            fg_color="transparent",
-            height=0,
-            **kwargs
-        )
-        self._label = ctk.CTkLabel(
-            self, text="", font=FONT_BODY,
-            text_color=TEXT_PRIMARY,
-            corner_radius=6,
-            fg_color="transparent"
-        )
-        self._label.pack(fill="x", padx=8, pady=4)
-        self._after_id = None
-
-    def show(self, message: str, kind: str = "success"):
-        """
-        Display a notification.
-        kind: "success" | "error" | "info" | "warning"
-        """
-        colors = {
-            "success": SUCCESS,
-            "error":   DANGER,
-            "info":    INFO,
-            "warning": WARNING,
-        }
-        bg = colors.get(kind, SUCCESS)
-        self.configure(fg_color=bg, height=36)
-        self._label.configure(text=f"  {message}", fg_color=bg)
-        self.pack(fill="x", padx=16, pady=(4, 0))
-
-        # Auto-hide after 3 seconds
-        if self._after_id:
-            self.after_cancel(self._after_id)
-        self._after_id = self.after(3500, self.hide)
+    def show(self, msg, kind="success"):
+        fg  = {  "success": SUCCESS, "error": DANGER,
+                 "info":    INFO,    "warning": WARNING  }.get(kind, SUCCESS)
+        bg  = {  "success": SUCCESS_BG, "error": "#4C1414",
+                 "info":    INFO_BG,    "warning": WARNING_BG }.get(kind, SUCCESS_BG)
+        ico = {"success": "✓", "error": "✕", "info": "ℹ", "warning": "⚠"}.get(kind, "•")
+        self.configure(fg_color=bg, corner_radius=8, height=36)
+        self._lbl.configure(text=f"  {ico}  {msg}", text_color=fg, fg_color=bg)
+        self.pack(fill="x", padx=20, pady=(6, 0))
+        if self._after:
+            self.after_cancel(self._after)
+        self._after = self.after(3500, self.hide)
 
     def hide(self):
         self.configure(fg_color="transparent", height=0)
-        self._label.configure(text="")
+        self._lbl.configure(text="")
         self.pack_forget()
 
 
-# ---------------------------------------------------------
-# Form Row helper (label + widget side by side)
-# ---------------------------------------------------------
-def form_row(parent, label_text, widget, pady=6):
-    """Packs a label and its input widget as a horizontal row."""
-    row = ctk.CTkFrame(parent, fg_color="transparent")
-    row.pack(fill="x", padx=16, pady=pady)
-    ctk.CTkLabel(
-        row, text=label_text,
-        font=FONT_BODY,
-        text_color=TEXT_SECONDARY,
-        width=140,
-        anchor="w"
-    ).pack(side="left")
-    widget.pack(side="left", padx=(8, 0))
-    return row
+# ── Stat Card ────────────────────────────────────────────────
 
-
-# ---------------------------------------------------------
-# Stat Card (dashboard summary box)
-# ---------------------------------------------------------
 class StatCard(ctk.CTkFrame):
+    def __init__(self, master, title, value, icon="", color=PRIMARY, **kw):
+        super().__init__(master, fg_color=CARD_BG, corner_radius=CARD_CORNER,
+                         border_width=1, border_color=CARD_BORDER, **kw)
+        self._color = color
+        # Left color stripe
+        self._stripe = ctk.CTkFrame(self, fg_color=color, width=4,
+                                    corner_radius=4)
+        self._stripe.pack(side="left", fill="y", pady=0)
+        body = ctk.CTkFrame(self, fg_color="transparent")
+        body.pack(side="left", padx=12, pady=14, fill="both", expand=True)
+        ctk.CTkLabel(body, text=icon, font=("Segoe UI Emoji", 20),
+                     text_color=color).pack(anchor="w")
+        self._val = ctk.CTkLabel(body, text=str(value),
+                                 font=("Segoe UI", 22, "bold"),
+                                 text_color=TEXT_PRIMARY)
+        self._val.pack(anchor="w")
+        ctk.CTkLabel(body, text=title, font=FONT_TINY,
+                     text_color=TEXT_SECONDARY).pack(anchor="w")
+        # Subtle lift on hover
+        self._hovered = False
+        self.bind("<Enter>", self._on_enter)
+        self.bind("<Leave>", self._on_leave)
+
+    def _on_enter(self, _):
+        self._hovered = True
+        self.configure(fg_color=STAT_HOVER, border_color=color_alpha(self._color))
+        self._stripe.configure(fg_color=self._color)
+
+    def _on_leave(self, _):
+        self._hovered = False
+        self.configure(fg_color=CARD_BG, border_color=CARD_BORDER)
+
+    def update_value(self, v):
+        self._val.configure(text=str(v))
+
+
+# ── Dialog Base ──────────────────────────────────────────────
+
+class BaseDialog(ctk.CTkToplevel):
     """
-    A small card showing a metric with label and value.
-    Used on the dashboard.
+    Consistent popup base: dark background, title bar,
+    centered over parent.
     """
-    def __init__(self, master, title, value, icon="", color=PRIMARY, **kwargs):
-        super().__init__(
-            master,
-            fg_color=CARD_BG,
-            corner_radius=CARD_CORNER,
-            **kwargs
-        )
-        # Top colored bar
-        ctk.CTkFrame(
-            self, fg_color=color, height=4, corner_radius=2
-        ).pack(fill="x", padx=0, pady=(0, 8))
+    def __init__(self, parent, title, width=480, height=520):
+        super().__init__(parent)
+        self.title(title)
+        self.configure(fg_color=BG_MEDIUM)
+        self.grab_set()
 
-        ctk.CTkLabel(
-            self, text=f"{icon}  {title}" if icon else title,
-            font=FONT_SMALL,
-            text_color=TEXT_MUTED
-        ).pack(anchor="w", padx=14)
+        # Button row at bottom FIRST so it stays anchored and visible
+        # even if the body content grows taller than the fixed height.
+        self.btn_row = ctk.CTkFrame(self, fg_color="transparent")
+        self.btn_row.pack(side="bottom", fill="x", padx=24, pady=14)
 
-        self.value_label = ctk.CTkLabel(
-            self, text=str(value),
-            font=("Segoe UI", 24, "bold"),
-            text_color=TEXT_PRIMARY
-        )
-        self.value_label.pack(anchor="w", padx=14, pady=(2, 10))
+        # Title bar
+        bar = ctk.CTkFrame(self, fg_color=PRIMARY_DARK,
+                           height=48, corner_radius=0)
+        bar.pack(fill="x")
+        bar.pack_propagate(False)
+        ctk.CTkFrame(bar, fg_color=PRIMARY, width=4,
+                     corner_radius=0).pack(side="left", fill="y")
+        ctk.CTkLabel(bar, text=f"  {title}", font=FONT_HEADING,
+                     text_color=TEXT_PRIMARY).pack(side="left", padx=8)
 
-    def update_value(self, value):
-        """Update the displayed metric value."""
-        self.value_label.configure(text=str(value))
+        # Content area
+        self.body = ctk.CTkFrame(self, fg_color="transparent")
+        self.body.pack(fill="both", expand=True, padx=24, pady=(12, 0))
+
+        # Apply size + center AFTER children are built (subclass finishes
+        # __init__ right after this, but layout needs a settle pass).
+        self._width, self._height = width, height
+        self.after(10, self._finalize_layout)
+
+    def _finalize_layout(self):
+        """Size the window to fit its content and center over parent."""
+        self.update_idletasks()
+        req_w = max(self._width, self.winfo_reqwidth())
+        req_h = max(self._height, self.winfo_reqheight())
+        parent = self.master
+        px = parent.winfo_rootx() + (parent.winfo_width()  - req_w) // 2
+        py = parent.winfo_rooty() + (parent.winfo_height() - req_h) // 2
+        self.geometry(f"{req_w}x{req_h}+{max(px,0)}+{max(py,0)}")
+
+    def add_buttons(self, save_cmd, cancel_cmd=None):
+        PrimaryButton(self.btn_row, "💾  Save",
+                      save_cmd, width=120).pack(side="left", padx=(0, 8))
+        SecondaryButton(self.btn_row, "Cancel",
+                        cancel_cmd or self.destroy, width=100).pack(side="left")
+
+    def add_field(self, label, factory, **kw):
+        """Add a labelled form field inside the dialog body.
+
+        `factory` is a callable(row) that creates the input widget with the
+        row as its parent — required so customtkinter draws it correctly.
+        Returns the created widget.
+        """
+        return form_row(self.body, label, factory, **kw)

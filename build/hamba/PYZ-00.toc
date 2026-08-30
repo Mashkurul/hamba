@@ -1040,6 +1040,10 @@
    'D:\\PERSONAL PROJECT\\face scanner in '
    'python\\face_scanner\\HAMBA\\gui\\main_window.py',
    'PYMODULE'),
+  ('gui.new_pages',
+   'D:\\PERSONAL PROJECT\\face scanner in '
+   'python\\face_scanner\\HAMBA\\gui\\new_pages.py',
+   'PYMODULE'),
   ('gui.pages',
    'D:\\PERSONAL PROJECT\\face scanner in '
    'python\\face_scanner\\HAMBA\\gui\\pages.py',

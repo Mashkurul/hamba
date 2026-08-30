@@ -4038,6 +4038,10 @@
    'D:\\PERSONAL PROJECT\\face scanner in '
    'python\\face_scanner\\HAMBA\\gui\\__pycache__\\main_window.cpython-314.pyc',
    'DATA'),
+  ('gui\\__pycache__\\new_pages.cpython-314.pyc',
+   'D:\\PERSONAL PROJECT\\face scanner in '
+   'python\\face_scanner\\HAMBA\\gui\\__pycache__\\new_pages.cpython-314.pyc',
+   'DATA'),
   ('gui\\__pycache__\\pages.cpython-314.pyc',
    'D:\\PERSONAL PROJECT\\face scanner in '
    'python\\face_scanner\\HAMBA\\gui\\__pycache__\\pages.cpython-314.pyc',
@@ -4057,6 +4061,10 @@
   ('gui\\main_window.py',
    'D:\\PERSONAL PROJECT\\face scanner in '
    'python\\face_scanner\\HAMBA\\gui\\main_window.py',
+   'DATA'),
+  ('gui\\new_pages.py',
+   'D:\\PERSONAL PROJECT\\face scanner in '
+   'python\\face_scanner\\HAMBA\\gui\\new_pages.py',
    'DATA'),
   ('gui\\pages.py',
    'D:\\PERSONAL PROJECT\\face scanner in '
@@ -4126,6 +4134,10 @@
    'D:\\PERSONAL PROJECT\\face scanner in '
    'python\\face_scanner\\HAMBA\\modules\\__pycache__\\auth.cpython-314.pyc',
    'DATA'),
+  ('modules\\__pycache__\\cleaning_management.cpython-314.pyc',
+   'D:\\PERSONAL PROJECT\\face scanner in '
+   'python\\face_scanner\\HAMBA\\modules\\__pycache__\\cleaning_management.cpython-314.pyc',
+   'DATA'),
   ('modules\\__pycache__\\cow_management.cpython-314.pyc',
    'D:\\PERSONAL PROJECT\\face scanner in '
    'python\\face_scanner\\HAMBA\\modules\\__pycache__\\cow_management.cpython-314.pyc',
@@ -4138,6 +4150,10 @@
    'D:\\PERSONAL PROJECT\\face scanner in '
    'python\\face_scanner\\HAMBA\\modules\\__pycache__\\expense_management.cpython-314.pyc',
    'DATA'),
+  ('modules\\__pycache__\\farm_owner.cpython-314.pyc',
+   'D:\\PERSONAL PROJECT\\face scanner in '
+   'python\\face_scanner\\HAMBA\\modules\\__pycache__\\farm_owner.cpython-314.pyc',
+   'DATA'),
   ('modules\\__pycache__\\food_management.cpython-314.pyc',
    'D:\\PERSONAL PROJECT\\face scanner in '
    'python\\face_scanner\\HAMBA\\modules\\__pycache__\\food_management.cpython-314.pyc',
@@ -4146,9 +4162,17 @@
    'D:\\PERSONAL PROJECT\\face scanner in '
    'python\\face_scanner\\HAMBA\\modules\\__pycache__\\health_management.cpython-314.pyc',
    'DATA'),
+  ('modules\\__pycache__\\incident_management.cpython-314.pyc',
+   'D:\\PERSONAL PROJECT\\face scanner in '
+   'python\\face_scanner\\HAMBA\\modules\\__pycache__\\incident_management.cpython-314.pyc',
+   'DATA'),
   ('modules\\__pycache__\\milk_management.cpython-314.pyc',
    'D:\\PERSONAL PROJECT\\face scanner in '
    'python\\face_scanner\\HAMBA\\modules\\__pycache__\\milk_management.cpython-314.pyc',
+   'DATA'),
+  ('modules\\__pycache__\\notifications.cpython-314.pyc',
+   'D:\\PERSONAL PROJECT\\face scanner in '
+   'python\\face_scanner\\HAMBA\\modules\\__pycache__\\notifications.cpython-314.pyc',
    'DATA'),
   ('modules\\__pycache__\\reports.cpython-314.pyc',
    'D:\\PERSONAL PROJECT\\face scanner in '
@@ -4162,6 +4186,10 @@
    'D:\\PERSONAL PROJECT\\face scanner in '
    'python\\face_scanner\\HAMBA\\modules\\auth.py',
    'DATA'),
+  ('modules\\cleaning_management.py',
+   'D:\\PERSONAL PROJECT\\face scanner in '
+   'python\\face_scanner\\HAMBA\\modules\\cleaning_management.py',
+   'DATA'),
   ('modules\\cow_management.py',
    'D:\\PERSONAL PROJECT\\face scanner in '
    'python\\face_scanner\\HAMBA\\modules\\cow_management.py',
@@ -4174,6 +4202,10 @@
    'D:\\PERSONAL PROJECT\\face scanner in '
    'python\\face_scanner\\HAMBA\\modules\\expense_management.py',
    'DATA'),
+  ('modules\\farm_owner.py',
+   'D:\\PERSONAL PROJECT\\face scanner in '
+   'python\\face_scanner\\HAMBA\\modules\\farm_owner.py',
+   'DATA'),
   ('modules\\food_management.py',
    'D:\\PERSONAL PROJECT\\face scanner in '
    'python\\face_scanner\\HAMBA\\modules\\food_management.py',
@@ -4182,9 +4214,17 @@
    'D:\\PERSONAL PROJECT\\face scanner in '
    'python\\face_scanner\\HAMBA\\modules\\health_management.py',
    'DATA'),
+  ('modules\\incident_management.py',
+   'D:\\PERSONAL PROJECT\\face scanner in '
+   'python\\face_scanner\\HAMBA\\modules\\incident_management.py',
+   'DATA'),
   ('modules\\milk_management.py',
    'D:\\PERSONAL PROJECT\\face scanner in '
    'python\\face_scanner\\HAMBA\\modules\\milk_management.py',
+   'DATA'),
+  ('modules\\notifications.py',
+   'D:\\PERSONAL PROJECT\\face scanner in '
+   'python\\face_scanner\\HAMBA\\modules\\notifications.py',
    'DATA'),
   ('modules\\reports.py',
    'D:\\PERSONAL PROJECT\\face scanner in '

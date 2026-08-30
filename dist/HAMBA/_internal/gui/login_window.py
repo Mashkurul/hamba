@@ -1,228 +1,195 @@
 # =============================================================
 # gui/login_window.py - Login Screen
 # =============================================================
-# The first window users see. Has:
-#   - App logo/title
-#   - Username & Password fields
-#   - Login button
-#   - Role badge shown after login
-# =============================================================
 
 import hashlib
-import tkinter as tk
 import customtkinter as ctk
-from gui.theme import *
-from database import get_connection
+from gui.theme   import *
+from gui.widgets import PasswordEntry
+from database    import get_connection
 
 
 class LoginWindow(ctk.CTk):
-    """
-    The login window. On success, destroys itself and
-    passes the logged-in user dict back to the caller.
-    """
-
     def __init__(self):
         super().__init__()
-
-        # Window setup
-        self.title("HAMBA – Login")
-        self.geometry("480x580")
+        self.title("HAMBA – Sign In")
+        self.geometry("940x600")
         self.resizable(False, False)
         self.configure(fg_color=BG_DARK)
 
-        # Center window on screen
         self.update_idletasks()
-        x = (self.winfo_screenwidth()  // 2) - (480 // 2)
-        y = (self.winfo_screenheight() // 2) - (580 // 2)
-        self.geometry(f"480x580+{x}+{y}")
+        x = (self.winfo_screenwidth()  // 2) - 470
+        y = (self.winfo_screenheight() // 2) - 300
+        self.geometry(f"940x600+{x}+{y}")
 
-        # Result – set by successful login
         self.logged_in_user = None
+        self._attempts = 0
 
-        self._build_ui()
+        self._build()
+        self.bind("<Return>", lambda _: self._login())
+        # Focus username field
+        self.after(100, self._username.focus)
 
-        # Allow pressing Enter to submit
-        self.bind("<Return>", lambda e: self._do_login())
+    # ----------------------------------------------------------
+    def _build(self):
+        # Two columns: left branding | right form
+        self.columnconfigure(0, weight=1)
+        self.columnconfigure(1, weight=1)
+        self.rowconfigure(0, weight=1)
 
-    # ---------------------------------------------------------
-    # Build UI
-    # ---------------------------------------------------------
-    def _build_ui(self):
+        # ══════════════ LEFT PANEL ══════════════
+        left = ctk.CTkFrame(self, fg_color=PRIMARY_DARK, corner_radius=0)
+        left.grid(row=0, column=0, sticky="nsew")
 
-        # ── Top green accent bar ──
-        ctk.CTkFrame(
-            self, fg_color=PRIMARY, height=6
-        ).pack(fill="x")
+        # Top accent
+        ctk.CTkFrame(left, fg_color=PRIMARY, height=4,
+                     corner_radius=0).pack(fill="x")
 
-        # ── Logo / Title area ──
-        logo_frame = ctk.CTkFrame(self, fg_color="transparent")
-        logo_frame.pack(pady=(40, 10))
+        # Subtle decorative ring behind the logo
+        ring = ctk.CTkFrame(left, fg_color="#143324", width=150, height=150,
+                            corner_radius=75)
+        ring.place(relx=0.5, rely=0.24, anchor="center")
 
-        ctk.CTkLabel(
-            logo_frame,
-            text="🐄",
-            font=("Segoe UI Emoji", 52),
-            text_color=PRIMARY_LIGHT
-        ).pack()
+        center = ctk.CTkFrame(left, fg_color="transparent")
+        center.place(relx=0.5, rely=0.46, anchor="center")
 
-        ctk.CTkLabel(
-            logo_frame,
-            text="HAMBA",
-            font=("Segoe UI", 32, "bold"),
-            text_color=TEXT_PRIMARY
-        ).pack()
+        ctk.CTkLabel(center, text="🐄",
+                     font=("Segoe UI Emoji", 64),
+                     text_color=PRIMARY_LIGHT).pack(pady=(0, 10))
 
-        ctk.CTkLabel(
-            logo_frame,
-            text="AI Based Cow Management System",
-            font=FONT_SMALL,
-            text_color=TEXT_MUTED
-        ).pack()
+        ctk.CTkLabel(center, text="HAMBA",
+                     font=("Segoe UI", 38, "bold"),
+                     text_color=TEXT_PRIMARY).pack()
 
-        # ── Login Card ──
-        card = ctk.CTkFrame(
-            self,
-            fg_color=CARD_BG,
-            corner_radius=CARD_CORNER,
-            width=380
-        )
-        card.pack(padx=50, pady=20, fill="x")
-        card.pack_propagate(False)
-        card.configure(height=260)
+        ctk.CTkLabel(center, text="AI Based Cow\nManagement System",
+                     font=("Segoe UI", 13),
+                     text_color=TEXT_ACCENT,
+                     justify="center").pack(pady=(4, 28))
 
-        ctk.CTkLabel(
-            card,
-            text="Sign In",
-            font=FONT_HEADING,
-            text_color=TEXT_PRIMARY
-        ).pack(anchor="w", padx=24, pady=(20, 4))
+        # Feature list
+        features = [
+            ("🐄", "Cow Tracking"),
+            ("🥛", "Milk Records"),
+            ("💉", "Health Monitor"),
+            ("🤖", "AI Assistant"),
+            ("📊", "Reports & Analytics"),
+        ]
+        for ico, lbl in features:
+            row = ctk.CTkFrame(center, fg_color="#1A3828", corner_radius=20)
+            row.pack(fill="x", pady=3, ipady=5)
+            ctk.CTkLabel(row, text=f"  {ico}  {lbl}",
+                         font=FONT_SMALL, text_color=TEXT_ACCENT).pack()
 
-        ctk.CTkLabel(
-            card,
-            text="Enter your credentials to continue",
-            font=FONT_SMALL,
-            text_color=TEXT_MUTED
-        ).pack(anchor="w", padx=24, pady=(0, 16))
+        ctk.CTkLabel(left, text="v1.0  •  University Project",
+                     font=FONT_TINY, text_color=TEXT_MUTED
+                     ).place(relx=0.5, rely=0.96, anchor="center")
 
-        # Username
-        ctk.CTkLabel(
-            card, text="Username",
-            font=FONT_SMALL, text_color=TEXT_SECONDARY
-        ).pack(anchor="w", padx=24)
+        # ══════════════ RIGHT PANEL ══════════════
+        right = ctk.CTkFrame(self, fg_color=BG_DARK, corner_radius=0)
+        right.grid(row=0, column=1, sticky="nsew")
 
-        self.username_entry = ctk.CTkEntry(
-            card,
-            placeholder_text="Enter username",
-            width=332,
-            height=INPUT_HEIGHT,
-            corner_radius=INPUT_CORNER,
-            fg_color=INPUT_BG,
-            border_color=BORDER,
-            text_color=TEXT_PRIMARY,
-            placeholder_text_color=TEXT_MUTED,
+        form = ctk.CTkFrame(right, fg_color="transparent", width=340)
+        form.place(relx=0.5, rely=0.5, anchor="center")
+        # No pack_propagate(False): let the form grow with its content so
+        # the error banner has room to appear.
+
+        # Welcome heading
+        ctk.CTkLabel(form, text="Welcome back 👋",
+                     font=("Segoe UI", 26, "bold"),
+                     text_color=TEXT_PRIMARY).pack(anchor="w")
+        ctk.CTkLabel(form, text="Sign in to your HAMBA account",
+                     font=FONT_BODY,
+                     text_color=TEXT_SECONDARY).pack(anchor="w", pady=(2, 24))
+
+        # ── Username ──
+        ctk.CTkLabel(form, text="Username",
+                     font=FONT_SMALL, text_color=TEXT_SECONDARY).pack(anchor="w")
+        self._username = ctk.CTkEntry(
+            form, placeholder_text="Enter your username",
+            width=340, height=INPUT_HEIGHT, corner_radius=INPUT_CORNER,
+            fg_color=INPUT_BG, border_color=BORDER,
+            text_color=TEXT_PRIMARY, placeholder_text_color=TEXT_MUTED,
             font=FONT_BODY
         )
-        self.username_entry.pack(padx=24, pady=(4, 12))
+        self._username.pack(pady=(4, 14), anchor="w")
 
-        # Password
-        ctk.CTkLabel(
-            card, text="Password",
-            font=FONT_SMALL, text_color=TEXT_SECONDARY
-        ).pack(anchor="w", padx=24)
+        # ── Password with show/hide ──
+        ctk.CTkLabel(form, text="Password",
+                     font=FONT_SMALL, text_color=TEXT_SECONDARY).pack(anchor="w")
+        self._password = PasswordEntry(form, placeholder="Enter your password",
+                                       width=340)
+        self._password.pack(pady=(4, 6), anchor="w")
 
-        self.password_entry = ctk.CTkEntry(
-            card,
-            placeholder_text="Enter password",
-            show="●",
-            width=332,
-            height=INPUT_HEIGHT,
-            corner_radius=INPUT_CORNER,
-            fg_color=INPUT_BG,
-            border_color=BORDER,
-            text_color=TEXT_PRIMARY,
-            placeholder_text_color=TEXT_MUTED,
-            font=FONT_BODY
-        )
-        self.password_entry.pack(padx=24, pady=(4, 20))
+        # ── Error banner (hidden until a login error occurs) ──
+        self._err_frame = ctk.CTkFrame(form, fg_color="#4C1414",
+                                       corner_radius=8)
+        self._err_lbl = ctk.CTkLabel(self._err_frame, text="",
+                                     font=FONT_SMALL, text_color=DANGER,
+                                     fg_color="transparent")
+        self._err_lbl.pack(padx=12, pady=7)
+        self._err_frame.pack_forget()   # start hidden
 
-        # ── Error message label ──
-        self.error_label = ctk.CTkLabel(
-            self,
-            text="",
-            font=FONT_SMALL,
-            text_color=DANGER,
-            fg_color="transparent"
-        )
-        self.error_label.pack(pady=(0, 4))
-
-        # ── Login Button ──
+        # ── Login button ──
         ctk.CTkButton(
-            self,
-            text="Sign In  →",
-            command=self._do_login,
-            width=380,
-            height=44,
+            form, text="Sign In  →",
+            command=self._login,
+            width=340, height=46,
             corner_radius=BTN_CORNER,
-            fg_color=PRIMARY,
-            hover_color=PRIMARY_HOVER,
+            fg_color=PRIMARY, hover_color=PRIMARY_HOVER,
             text_color=TEXT_PRIMARY,
             font=("Segoe UI", 13, "bold")
-        ).pack(padx=50)
+        ).pack(pady=(18, 0))
 
-        # ── Default credentials hint ──
-        ctk.CTkLabel(
-            self,
-            text="Default: admin / admin123",
-            font=FONT_SMALL,
-            text_color=TEXT_MUTED
-        ).pack(pady=(12, 0))
+    # ----------------------------------------------------------
+    def _login(self):
+        username = self._username.get().strip()
+        password = self._password.get().strip()
 
-    # ---------------------------------------------------------
-    # Login Logic
-    # ---------------------------------------------------------
-    def _do_login(self):
-        username = self.username_entry.get().strip()
-        password = self.password_entry.get().strip()
+        # Hide any previous error
+        self._err_frame.pack_forget()
 
         if not username or not password:
-            self._show_error("Please enter username and password.")
+            self._show_err("Please enter both username and password.")
             return
 
         hashed = hashlib.sha256(password.encode()).hexdigest()
-
         try:
-            conn   = get_connection()
-            cursor = conn.cursor()
-            cursor.execute("""
-                SELECT id, username, role, full_name, is_active
-                FROM users
-                WHERE username = ? AND password = ?
-            """, (username, hashed))
-            user = cursor.fetchone()
+            conn = get_connection()
+            cur  = conn.cursor()
+            cur.execute("""SELECT id, username, role, full_name, is_active
+                           FROM users WHERE username=? AND password=?""",
+                        (username, hashed))
+            user = cur.fetchone()
             conn.close()
 
             if user is None:
-                self._show_error("Invalid username or password.")
-                self.password_entry.delete(0, "end")
+                self._attempts += 1
+                left = max(0, 3 - self._attempts)
+                msg  = "Incorrect username or password."
+                if left > 0:
+                    msg += f"  ({left} attempt{'s' if left > 1 else ''} remaining)"
+                self._show_err(msg)
+                self._password.delete(0, "end")
+                self._shake()
                 return
 
             if user["is_active"] == 0:
-                self._show_error("Account deactivated. Contact admin.")
+                self._show_err("Account deactivated — contact the admin.")
                 return
 
-            # Success – store user and close window
             self.logged_in_user = dict(user)
             self.destroy()
 
         except Exception as e:
-            self._show_error(f"Error: {e}")
+            self._show_err(f"Database error: {e}")
 
-    def _show_error(self, msg: str):
-        """Display an error message below the form."""
-        self.error_label.configure(text=f"⚠  {msg}")
-        # Shake the window slightly for feedback
+    def _show_err(self, msg):
+        self._err_lbl.configure(text=f"  ✕  {msg}")
+        self._err_frame.pack(fill="x", pady=(8, 0))
+
+    def _shake(self):
         x, y = self.winfo_x(), self.winfo_y()
-        for dx in [6, -6, 5, -5, 3, -3, 0]:
-            self.geometry(f"+{x+dx}+{y}")
+        for d in [10, -10, 7, -7, 4, -4, 0]:
+            self.geometry(f"+{x+d}+{y}")
             self.update()
-            self.after(30)
+            self.after(22)

@@ -101,7 +101,8 @@ def login() -> dict | None:
 # ---------------------------------------------------------
 def create_user(current_user: dict):
     """
-    Allows the admin to create a new worker or salesman account.
+    Allows the admin to create a new user account.
+    Roles: worker, salesman, watchman, cleaner, farm_owner.
     Only callable if current_user['role'] == 'admin'.
     """
     # Guard: only admins can create users
@@ -130,21 +131,17 @@ def create_user(current_user: dict):
     full_name = input("  Full Name    : ").strip()
 
     # Pick role (admin cannot create another admin)
-    allowed_roles = ["worker", "salesman"]
+    allowed_roles = ["worker", "salesman", "watchman", "cleaner", "farm_owner"]
     print("\n  Assign Role:")
     for i, role in enumerate(allowed_roles, 1):
-        print(f"    {i}. {role.capitalize()}")
+        print(f"    {i}. {role.replace('_', ' ').title()}")
 
     while True:
-        choice = input("  Select role (1/2): ").strip()
-        if choice == "1":
-            role = "worker"
+        choice = input(f"  Select role (1-{len(allowed_roles)}): ").strip()
+        if choice.isdigit() and 1 <= int(choice) <= len(allowed_roles):
+            role = allowed_roles[int(choice) - 1]
             break
-        elif choice == "2":
-            role = "salesman"
-            break
-        else:
-            print("  [!] Invalid choice.")
+        print("  [!] Invalid choice.")
 
     # Set password
     while True:
