@@ -67,6 +67,58 @@ EXPENSE_CATEGORIES = ["Feed", "Medicine", "Salary", "Equipment", "Other"]
 FOOD_TYPES = ["Hay", "Grass", "Silage", "Concentrate", "Grain", "Mineral", "Other"]
 
 # ---------------------------------------------------------
+# User Roles
+# ---------------------------------------------------------
+# Admin     : Full access to everything, can create users
+# Worker    : Can manage cows, milk, food, health
+# Salesman  : Can only access milk sales and expense/sales
+# Watchman  : Security & daily monitoring (attendance, incidents)
+# Cleaner   : Cleanliness & sanitation (cleaning tasks, records)
+# Farm Owner: Highest-level operational user (full farm management)
+USER_ROLES = ["admin", "worker", "salesman", "watchman", "cleaner", "farm_owner"]
+
+# Permissions per role — list of menu option numbers allowed
+# Maps role name → set of allowed main-menu choices
+ROLE_PERMISSIONS = {
+    "admin":      {"1", "2", "3", "4", "5", "6", "7", "8"},   # full access
+    "worker":     {"1", "2", "3", "4", "8"},                  # cows, milk, food, health, AI
+    "salesman":   {"2", "6", "7"},                            # milk, sales, reports
+    "watchman":   {"1", "2", "8"},                            # cows (view), milk, AI (reports)
+    "cleaner":    {"1", "2", "8"},                            # cows (view), milk, AI (reports)
+    "farm_owner": {"1", "2", "3", "4", "5", "6", "7", "8"},   # full access
+}
+
+# ---------------------------------------------------------
+# Watchman / Security
+# ---------------------------------------------------------
+INCIDENT_TYPES = [
+    "Theft", "Unauthorized Visitor", "Animal Missing",
+    "Equipment Damage", "Fire", "Power Failure",
+    "Suspicious Activity", "Other",
+]
+INCIDENT_PRIORITY = ["Low", "Medium", "High", "Critical"]
+INCIDENT_STATUS   = ["Open", "In Progress", "Resolved", "Closed"]
+
+# ---------------------------------------------------------
+# Cleaner / Sanitation
+# ---------------------------------------------------------
+CLEANING_AREAS = [
+    "Cow Shed", "Feeding Area", "Milking Area", "Storage Room",
+    "Water Area", "Medical Area", "Equipment Area", "Waste Disposal Area",
+]
+CLEANING_TYPES = [
+    "General Cleaning", "Disinfection", "Waste Removal",
+    "Water Area Cleaning", "Feeding Area Cleaning", "Milking Area Cleaning",
+]
+CLEANING_STATUS = ["Pending", "In Progress", "Completed"]
+
+# ---------------------------------------------------------
+# Notifications
+# ---------------------------------------------------------
+NOTIFICATION_CATEGORIES = ["General", "Security", "Health", "Maintenance", "Feed", "Finance"]
+NOTIFICATION_PRIORITY   = ["Normal", "Important", "Emergency", "Critical"]
+
+# ---------------------------------------------------------
 # Helper: Print a full-width separator line
 # ---------------------------------------------------------
 def print_line(char=LINE_CHAR):

@@ -9,8 +9,9 @@
 # Every other module imports get_connection() from here.
 # =============================================================
 
-import sqlite3  # Built-in Python library for SQLite
-import os       # For file/folder path operations
+import sqlite3   # Built-in Python library for SQLite
+import hashlib   # For hashing passwords securely
+import os        # For file/folder path operations
 
 # Import path settings from our config file
 from config import DATABASE_DIR, DATABASE_FILE
@@ -183,6 +184,94 @@ def initialize_database():
             notes       TEXT
         )
     """)
+
+    # --------------------------------------------------
+    # Table: users
+    # Stores login credentials for all system users.
+    # Passwords are stored as SHA-256 hashes (never plain text).
+    # Roles: admin | worker | salesman | watchman | cleaner | farm_owner
+    # --------------------------------------------------
+    cursor.execute("""
+        CREATE TABLE IF NOT EXISTS users (
+            id           INTEGER PRIMARY KEY AUTOINCREMENT,
+            username     TEXT    NOT NULL UNIQUE,
+            password     TEXT    NOT NULL,
+            role         TEXT    NOT NULL DEFAULT 'worker',
+            full_name    TEXT,
+            created_by   TEXT    DEFAULT 'system',
+            is_active    INTEGER DEFAULT 1
+        )
+    """)
+
+    # --------------------------------------------------
+    # Table: incidents
+    # Security incidents reported by watchmen.
+    # --------------------------------------------------
+    cursor.execute("""
+        CREATE TABLE IF NOT EXISTS incidents (
+            incident_id    INTEGER PRIMARY KEY AUTOINCREMENT,
+            reported_by    TEXT,
+            incident_type  TEXT    NOT NULL,
+            description    TEXT,
+            date           TEXT,
+            time           TEXT,
+            location       TEXT,
+            priority       TEXT    DEFAULT 'Medium',
+            status         TEXT    DEFAULT 'Open'
+        )
+    """)
+
+    # --------------------------------------------------
+    # Table: cleaning
+    # Cleaning & sanitation records reported by cleaners.
+    # --------------------------------------------------
+    cursor.execute("""
+        CREATE TABLE IF NOT EXISTS cleaning (
+            cleaning_id    INTEGER PRIMARY KEY AUTOINCREMENT,
+            cleaner_id     INTEGER,
+            area           TEXT    NOT NULL,
+            cleaning_type  TEXT    NOT NULL,
+            date           TEXT,
+            time           TEXT,
+            status         TEXT    DEFAULT 'Pending',
+            remarks        TEXT
+        )
+    """)
+
+    # --------------------------------------------------
+    # Table: notifications
+    # Important alerts / notifications for all roles.
+    # --------------------------------------------------
+    cursor.execute("""
+        CREATE TABLE IF NOT EXISTS notifications (
+            id           INTEGER PRIMARY KEY AUTOINCREMENT,
+            title        TEXT    NOT NULL,
+            message      TEXT,
+            category     TEXT    DEFAULT 'General',
+            priority     TEXT    DEFAULT 'Normal',
+            target_role  TEXT    DEFAULT 'all',
+            created_by   TEXT    DEFAULT 'system',
+            created_at   TEXT,
+            is_read      INTEGER DEFAULT 0
+        )
+    """)
+
+    # --------------------------------------------------
+    # Seed: Create a default admin account if none exists.
+    # Default credentials:  admin / admin123
+    # The user should change this password after first login.
+    # --------------------------------------------------
+    cursor.execute("SELECT COUNT(*) as cnt FROM users WHERE role = 'admin'")
+    admin_exists = cursor.fetchone()['cnt']
+
+    if admin_exists == 0:
+        # Hash the default password using SHA-256
+        default_password = hashlib.sha256("admin123".encode()).hexdigest()
+        cursor.execute("""
+            INSERT INTO users (username, password, role, full_name, created_by)
+            VALUES (?, ?, 'admin', 'System Administrator', 'system')
+        """, ("admin", default_password))
+        print("  [OK] Default admin account created. (user: admin / pass: admin123)")
 
     # Save all table creations
     conn.commit()
