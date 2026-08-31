@@ -4138,6 +4138,10 @@
    'D:\\PERSONAL PROJECT\\face scanner in '
    'python\\face_scanner\\HAMBA\\modules\\__init__.py',
    'DATA'),
+  ('modules\\__pycache__\\milk_management.cpython-314.pyc',
+   'D:\\PERSONAL PROJECT\\face scanner in '
+   'python\\face_scanner\\HAMBA\\modules\\__pycache__\\milk_management.cpython-314.pyc',
+   'DATA'),
   ('modules\\ai_assistant.py',
    'D:\\PERSONAL PROJECT\\face scanner in '
    'python\\face_scanner\\HAMBA\\modules\\ai_assistant.py',

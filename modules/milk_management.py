@@ -44,10 +44,15 @@ def record_milk():
     # Verify the cow exists
     conn   = get_connection()
     cursor = conn.cursor()
-    cursor.execute("SELECT name FROM cows WHERE id = ?", (cow_id,))
+    cursor.execute("SELECT name, gender FROM cows WHERE id = ?", (cow_id,))
     cow = cursor.fetchone()
     if not cow:
         print(f"  [!] No cow found with ID {cow_id}.")
+        conn.close()
+        return
+    if cow['gender'] != 'Female':
+        print(f"  [!] '{cow['name']}' is a male cow ({cow['gender']}).")
+        print("  [!] Milk can only be recorded for FEMALE cows.")
         conn.close()
         return
     print(f"  Cow: {cow['name']}")

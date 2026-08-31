@@ -393,17 +393,22 @@ class MilkPage(BasePage):
 
 class MilkDialog(BaseDialog):
     def __init__(self, parent, on_save):
-        super().__init__(parent,"Record Milk Production",440,380)
+        super().__init__(parent,"Record Milk Production",440,410)
         self.on_save = on_save
         try:
             c=get_connection().execute(
-                "SELECT id,name FROM cows WHERE status='Active' ORDER BY name")
+                "SELECT id,name FROM cows WHERE status='Active' AND gender='Female' ORDER BY name")
             cows=[f"{r[0]} – {r[1]}" for r in c.fetchall()]
             c.connection.close()
         except: cows=[]
         def E(ph): return lambda row: StyledEntry(row, ph, 300)
         def C(v):  return lambda row: StyledCombo(row, v, 300)
-        self.c_cow    = self.add_field("Cow *",     C(cows or ["No active cows"]))
+        ctk.CTkLabel(self.body,
+                     text="🐄  Milk is only recorded for FEMALE cows.\n"
+                          "     Male cows do not produce milk.",
+                     font=FONT_TINY, text_color=TEXT_ACCENT
+                     ).pack(anchor="w", pady=(0, 6))
+        self.c_cow    = self.add_field("Cow *",     C(cows or ["No female cows"]))
         self.e_date   = self.add_field("Date",      lambda row: DatePicker(row, today()))
         self.e_liters = self.add_field("Liters *",  E("e.g. 12.5"))
         self.c_sess   = self.add_field("Session",   C(["Morning","Afternoon","Evening"]))
@@ -412,8 +417,17 @@ class MilkDialog(BaseDialog):
 
     def _save(self):
         s=self.c_cow.get()
-        if "–" not in s: messagebox.showwarning("","Select a cow."); return
+        if "–" not in s: messagebox.showwarning("","Select a female cow."); return
         cow_id=int(s.split("–")[0].strip())
+        # Guard: only female cows can have milk recorded
+        try:
+            c=get_connection().execute("SELECT gender FROM cows WHERE id=?",(cow_id,))
+            row=c.fetchone(); c.connection.close()
+        except Exception:
+            row=None
+        if row is None or row[0] != "Female":
+            messagebox.showwarning("","Milk can only be recorded for female cows.")
+            return
         try: liters=float(self.e_liters.get()); assert liters>=0
         except: messagebox.showwarning("","Enter valid liters."); return
         dt = get_date_or_warn(self.e_date, "Date")
