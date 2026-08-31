@@ -24,7 +24,7 @@ pip install customtkinter
 python app.py
 ```
 
-Default login: `admin` / `admin123` (change it after first login).
+Default login: `admin` / `admin123` (change it after first login). 
 
 ---
 

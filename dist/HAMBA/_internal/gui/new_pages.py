@@ -20,11 +20,26 @@ from gui.theme import *
 from gui.widgets import (PrimaryButton, DangerButton, SecondaryButton,
                          StyledLabel, StyledEntry, StyledCombo,
                          SectionCard, PageHeader, DataTable,
-                         NotificationBar, BaseDialog, form_row, divider)
+                         NotificationBar, BaseDialog, DatePicker,
+                         form_row, divider)
 
 
 def today(): return str(date.today())
 def now_time(): return datetime.now().strftime("%H:%M")
+
+
+def get_date_or_warn(entry, label):
+    """Validate a date entry; warn on impossible dates. Returns str or None."""
+    raw = entry.get().strip()
+    if not raw:
+        return today()
+    try:
+        return date.fromisoformat(raw).isoformat()
+    except ValueError:
+        messagebox.showwarning("Invalid Date",
+                               f"{label}: '{raw}' is not a valid date.\n"
+                               "Use the 📅 calendar or format YYYY-MM-DD.")
+        return None
 
 
 # =============================================================
@@ -109,11 +124,10 @@ class IncidentDialog(BaseDialog):
 
         self.c_type  = self.add_field("Incident Type *", C(INCIDENT_TYPES))
         self.e_desc  = self.add_field("Description *",   E("What happened?"))
-        self.e_date  = self.add_field("Date",            E(today()))
+        self.e_date  = self.add_field("Date",            lambda row: DatePicker(row, today()))
         self.e_time  = self.add_field("Time",            E(now_time()))
         self.e_loc   = self.add_field("Location",        E("e.g. Main Gate"))
         self.c_pri   = self.add_field("Priority",        C(INCIDENT_PRIORITY))
-        self.e_date.insert(0, today())
         self.e_time.insert(0, now_time())
         self.add_buttons(self._save)
 
@@ -121,6 +135,8 @@ class IncidentDialog(BaseDialog):
         desc = self.e_desc.get().strip()
         if not desc:
             messagebox.showwarning("", "Description is required."); return
+        dt = get_date_or_warn(self.e_date, "Date")
+        if dt is None: return
         try:
             conn = get_connection()
             conn.execute("""
@@ -128,7 +144,7 @@ class IncidentDialog(BaseDialog):
                     (reported_by, incident_type, description, date, time, location, priority, status)
                 VALUES (?,?,?,?,?,?,?,'Open')
             """, (self.user["username"], self.c_type.get(), desc,
-                  self.e_date.get().strip() or today(), self.e_time.get().strip() or now_time(),
+                  dt, self.e_time.get().strip() or now_time(),
                   self.e_loc.get().strip(), self.c_pri.get()))
             conn.commit(); conn.close()
             self.on_save("Incident recorded."); self.destroy()
@@ -252,22 +268,23 @@ class CleaningDialog(BaseDialog):
 
         self.c_area  = self.add_field("Area *",          C(CLEANING_AREAS))
         self.c_type  = self.add_field("Cleaning Type *", C(CLEANING_TYPES))
-        self.e_date  = self.add_field("Date",            E(today()))
+        self.e_date  = self.add_field("Date",            lambda row: DatePicker(row, today()))
         self.e_time  = self.add_field("Time",            E(now_time()))
         self.c_stat  = self.add_field("Status",          C(CLEANING_STATUS))
         self.e_rem   = self.add_field("Remarks",         E("Optional"))
-        self.e_date.insert(0, today())
         self.e_time.insert(0, now_time())
         self.add_buttons(self._save)
 
     def _save(self):
+        dt = get_date_or_warn(self.e_date, "Date")
+        if dt is None: return
         try:
             conn = get_connection()
             conn.execute("""
                 INSERT INTO cleaning (cleaner_id, area, cleaning_type, date, time, status, remarks)
                 VALUES (?,?,?,?,?,?,?)
             """, (self.user["id"], self.c_area.get(), self.c_type.get(),
-                  self.e_date.get().strip() or today(), self.e_time.get().strip() or now_time(),
+                  dt, self.e_time.get().strip() or now_time(),
                   self.c_stat.get(), self.e_rem.get().strip()))
             conn.commit(); conn.close()
             self.on_save("Cleaning record saved."); self.destroy()

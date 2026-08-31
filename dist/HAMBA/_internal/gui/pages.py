@@ -15,10 +15,55 @@ from gui.widgets import (PrimaryButton, DangerButton, SecondaryButton,
                          StyledLabel, StyledEntry, StyledCombo,
                          PasswordEntry, SectionCard, PageHeader,
                          DataTable, NotificationBar, StatCard,
-                         BaseDialog, form_row, divider)
+                         BaseDialog, DatePicker, form_row, divider)
 
 
 def today(): return str(date.today())
+
+
+def cow_filter_options(include_all=True):
+    """List of 'All Cows' + 'ID – Name' entries for cow filter dropdowns."""
+    try:
+        c = get_connection().execute(
+            "SELECT id,name FROM cows ORDER BY name")
+        cows = [f"{r[0]} – {r[1]}" for r in c.fetchall()]
+        c.connection.close()
+    except Exception:
+        cows = []
+    return (["All Cows"] if include_all else []) + cows
+
+
+def selected_cow_id(combo):
+    """Return cow id from a 'ID – Name' combo value, or None for 'All Cows'."""
+    s = combo.get() if combo else "All Cows"
+    if "–" not in s:
+        return None
+    try:
+        return int(s.split("–")[0].strip())
+    except ValueError:
+        return None
+
+
+def valid_date(s):
+    """Return a normalized 'YYYY-MM-DD' string if s is a real date, else None."""
+    try:
+        return date.fromisoformat(str(s).strip()).isoformat()
+    except ValueError:
+        return None
+
+
+def get_date_or_warn(entry, label):
+    """Validate a date entry; warn on impossible dates. Returns str or None."""
+    raw = entry.get().strip()
+    if not raw:
+        return today()
+    d = valid_date(raw)
+    if d is None:
+        messagebox.showwarning("Invalid Date",
+                               f"{label}: '{raw}' is not a valid date.\n"
+                               "Use the 📅 calendar or format YYYY-MM-DD.")
+        return None
+    return d
 
 
 # ── Helper: dialog heading ────────────────────────────────────
@@ -152,9 +197,15 @@ class CowsPage(BasePage):
         if not read_only:
             PrimaryButton(tb, "➕  Add Cow",    self._add).pack(side="left", padx=(0,8))
         SecondaryButton(tb,"🔄 Refresh",    self._load).pack(side="left", padx=(0,8))
-        self._search_e = StyledEntry(tb, "Search name or ID…", 220)
+        self._search_e = StyledEntry(tb, "Search name / ID / breed…", 200)
         self._search_e.pack(side="left")
-        self._search_e.bind("<KeyRelease>", lambda _: self._filter(self._search_e.get()))
+        self._search_e.bind("<KeyRelease>", lambda _: self._apply_filters())
+        self.c_status_f = StyledCombo(tb, ["All Statuses"] + COW_STATUS_OPTIONS, 130)
+        self.c_status_f.pack(side="left", padx=(8,0))
+        self.c_status_f.bind("<<ComboboxSelected>>", lambda _: self._apply_filters())
+        self.c_gender_f = StyledCombo(tb, ["All Genders"] + GENDER_OPTIONS, 120)
+        self.c_gender_f.pack(side="left", padx=(8,0))
+        self.c_gender_f.bind("<<ComboboxSelected>>", lambda _: self._apply_filters())
 
         card = self._card()
         self.tbl = DataTable(card,[
@@ -182,13 +233,23 @@ class CowsPage(BasePage):
                 "SELECT id,name,breed,age,weight,gender,color,purchase_date,status FROM cows ORDER BY id DESC")
             self._rows = [tuple(r) for r in c.fetchall()]
             c.connection.close()
-            self.tbl.load(self._rows)
+            self._apply_filters()
         except Exception as e: self.err(str(e))
 
-    def _filter(self, kw):
-        kw = kw.lower()
-        self.tbl.load([r for r in self._rows
-                       if kw in str(r[0]).lower() or kw in str(r[1]).lower()])
+    def _apply_filters(self):
+        kw = self._search_e.get().lower()
+        st = self.c_status_f.get()
+        gd = self.c_gender_f.get()
+        rows = self._rows
+        if st != "All Statuses":
+            rows = [r for r in rows if r[8] == st]
+        if gd != "All Genders":
+            rows = [r for r in rows if r[5] == gd]
+        if kw:
+            rows = [r for r in rows
+                    if any(kw in str(v).lower()
+                           for v in (r[0], r[1], r[2], r[6]))]  # id, name, breed, color
+        self.tbl.load(rows)
 
     def _add(self):    CowDialog(self, on_save=lambda m:(self.ok(m), self._load()))
     def _edit(self):
@@ -220,11 +281,10 @@ class CowDialog(BaseDialog):
         self.e_color  = self.add_field("Color",      E("e.g. Black & White"))
         self.e_age    = self.add_field("Age (yrs)",  E("Years"))
         self.e_weight = self.add_field("Weight (kg)",E("kg"))
-        self.e_date   = self.add_field("Purchase Date", E(today()))
+        self.e_date   = self.add_field("Purchase Date", lambda row: DatePicker(row, today()))
         self.c_gender = self.add_field("Gender",     C(GENDER_OPTIONS))
         self.c_status = self.add_field("Status",     C(COW_STATUS_OPTIONS))
 
-        self.e_date.insert(0, today())
         self.add_buttons(self._save)
 
         if cow_id:
@@ -234,8 +294,9 @@ class CowDialog(BaseDialog):
                 row=c.fetchone(); conn.close()
                 if row:
                     for e,k in [(self.e_name,"name"),(self.e_breed,"breed"),
-                                (self.e_color,"color"),(self.e_date,"purchase_date")]:
+                                (self.e_color,"color")]:
                         e.delete(0,"end"); e.insert(0,row[k] or "")
+                    self.e_date.set(row["purchase_date"] or today())
                     self.e_age.delete(0,"end");    self.e_age.insert(0,str(row["age"] or ""))
                     self.e_weight.delete(0,"end"); self.e_weight.insert(0,str(row["weight"] or ""))
                     self.c_gender.set(row["gender"] or GENDER_OPTIONS[0])
@@ -253,7 +314,8 @@ class CowDialog(BaseDialog):
         color  = self.e_color.get().strip()
         gender = self.c_gender.get()
         status = self.c_status.get()
-        pdate  = self.e_date.get().strip() or today()
+        pdate  = get_date_or_warn(self.e_date, "Purchase date")
+        if pdate is None: return
         try:
             conn=get_connection(); c=conn.cursor()
             if self.cow_id:
@@ -281,6 +343,12 @@ class MilkPage(BasePage):
         tb = self._toolbar()
         PrimaryButton(tb,"➕  Record Milk",self._add).pack(side="left",padx=(0,8))
         SecondaryButton(tb,"🔄 Refresh",   self._load).pack(side="left")
+        self.c_cow_f = StyledCombo(tb, cow_filter_options(), 160)
+        self.c_cow_f.pack(side="left", padx=(8,0))
+        self.c_cow_f.bind("<<ComboboxSelected>>", lambda _: self._apply_filters())
+        self._search_e = StyledEntry(tb, "Search cow / notes…", 180)
+        self._search_e.pack(side="left", padx=(8,0))
+        self._search_e.bind("<KeyRelease>", lambda _: self._apply_filters())
 
         card = self._card()
         self.tbl = DataTable(card,[
@@ -294,11 +362,23 @@ class MilkPage(BasePage):
     def _load(self):
         try:
             c=get_connection().execute(
-                """SELECT m.id,c.name,m.date,m.liters,m.session,COALESCE(m.notes,'')
+                """SELECT m.cow_id, m.id,c.name,m.date,m.liters,m.session,COALESCE(m.notes,'')
                    FROM milk m JOIN cows c ON m.cow_id=c.id ORDER BY m.id DESC""")
-            self.tbl.load([tuple(r) for r in c.fetchall()])
+            self._rows = [tuple(r) for r in c.fetchall()]   # (cow_id, id, name, date, ...)
             c.connection.close()
+            self._apply_filters()
         except Exception as e: self.err(str(e))
+
+    def _apply_filters(self):
+        rows = self._rows
+        cow_id = selected_cow_id(self.c_cow_f)
+        if cow_id is not None:
+            rows = [r for r in rows if r[0] == cow_id]
+        kw = self._search_e.get().lower()
+        if kw:
+            rows = [r for r in rows
+                    if any(kw in str(v).lower() for v in (r[2], r[6]))]  # cow name, notes
+        self.tbl.load([r[1:] for r in rows])
 
     def _add(self): MilkDialog(self, on_save=lambda m:(self.ok(m),self._load()))
     def _delete(self):
@@ -324,11 +404,10 @@ class MilkDialog(BaseDialog):
         def E(ph): return lambda row: StyledEntry(row, ph, 300)
         def C(v):  return lambda row: StyledCombo(row, v, 300)
         self.c_cow    = self.add_field("Cow *",     C(cows or ["No active cows"]))
-        self.e_date   = self.add_field("Date",      E(today()))
+        self.e_date   = self.add_field("Date",      lambda row: DatePicker(row, today()))
         self.e_liters = self.add_field("Liters *",  E("e.g. 12.5"))
         self.c_sess   = self.add_field("Session",   C(["Morning","Afternoon","Evening"]))
         self.e_notes  = self.add_field("Notes",     E("Optional"))
-        self.e_date.insert(0, today())
         self.add_buttons(self._save)
 
     def _save(self):
@@ -337,7 +416,8 @@ class MilkDialog(BaseDialog):
         cow_id=int(s.split("–")[0].strip())
         try: liters=float(self.e_liters.get()); assert liters>=0
         except: messagebox.showwarning("","Enter valid liters."); return
-        dt=self.e_date.get().strip() or today()
+        dt = get_date_or_warn(self.e_date, "Date")
+        if dt is None: return
         try:
             conn=get_connection()
             conn.execute("INSERT INTO milk (cow_id,date,liters,session,notes) VALUES(?,?,?,?,?)",
@@ -357,6 +437,12 @@ class FoodPage(BasePage):
         tb=self._toolbar()
         PrimaryButton(tb,"➕  Add Feed",self._add).pack(side="left",padx=(0,8))
         SecondaryButton(tb,"🔄 Refresh",self._load).pack(side="left")
+        self.c_cow_f = StyledCombo(tb, cow_filter_options(), 160)
+        self.c_cow_f.pack(side="left", padx=(8,0))
+        self.c_cow_f.bind("<<ComboboxSelected>>", lambda _: self._apply_filters())
+        self._search_e = StyledEntry(tb, "Search food type / cow / notes…", 200)
+        self._search_e.pack(side="left", padx=(8,0))
+        self._search_e.bind("<KeyRelease>", lambda _: self._apply_filters())
 
         card=self._card()
         self.tbl=DataTable(card,[
@@ -371,11 +457,23 @@ class FoodPage(BasePage):
         try:
             c=get_connection().execute(
                 """SELECT f.id,f.food_type,f.quantity_kg,f.date,
-                          COALESCE(c.name,'All'),COALESCE(f.notes,'')
+                          COALESCE(c.name,'All'),COALESCE(f.notes,''),f.cow_id
                    FROM food f LEFT JOIN cows c ON f.cow_id=c.id ORDER BY f.id DESC""")
-            self.tbl.load([tuple(r) for r in c.fetchall()])
+            self._rows = [tuple(r) for r in c.fetchall()]
             c.connection.close()
+            self._apply_filters()
         except Exception as e: self.err(str(e))
+
+    def _apply_filters(self):
+        rows = self._rows
+        cow_id = selected_cow_id(self.c_cow_f)
+        if cow_id is not None:
+            rows = [r for r in rows if r[6] == cow_id]
+        kw = self._search_e.get().lower()
+        if kw:
+            rows = [r for r in rows
+                    if any(kw in str(v).lower() for v in (r[1], r[4], r[5]))]  # type, cow, notes
+        self.tbl.load([r[:5] for r in rows])
 
     def _add(self): FoodDialog(self, on_save=lambda m:(self.ok(m),self._load()))
     def _delete(self):
@@ -402,10 +500,9 @@ class FoodDialog(BaseDialog):
         def C(v):  return lambda row: StyledCombo(row, v, 300)
         self.c_type  = self.add_field("Food Type *",    C(FOOD_TYPES))
         self.e_qty   = self.add_field("Quantity (kg) *",E("kg"))
-        self.e_date  = self.add_field("Date",           E(today()))
+        self.e_date  = self.add_field("Date",           lambda row: DatePicker(row, today()))
         self.c_cow   = self.add_field("Cow",            C(cows))
         self.e_notes = self.add_field("Notes",          E("Optional"))
-        self.e_date.insert(0, today())
         self.add_buttons(self._save)
 
     def _save(self):
@@ -413,7 +510,8 @@ class FoodDialog(BaseDialog):
         except: messagebox.showwarning("","Enter valid quantity."); return
         cow_str=self.c_cow.get()
         cow_id=int(cow_str.split("–")[0].strip()) if "–" in cow_str else None
-        dt=self.e_date.get().strip() or today()
+        dt = get_date_or_warn(self.e_date, "Date")
+        if dt is None: return
         try:
             conn=get_connection()
             conn.execute("INSERT INTO food (food_type,quantity_kg,date,cow_id,notes) VALUES(?,?,?,?,?)",
@@ -435,6 +533,15 @@ class HealthPage(BasePage):
         tb=self._toolbar()
         PrimaryButton(tb,"➕  Add Record",self._add).pack(side="left",padx=(0,8))
         SecondaryButton(tb,"🔄 Refresh",self._load).pack(side="left")
+        self.c_cow_f = StyledCombo(tb, cow_filter_options(), 160)
+        self.c_cow_f.pack(side="left", padx=(8,0))
+        self.c_cow_f.bind("<<ComboboxSelected>>", lambda _: self._apply_filters())
+        self.c_type_f = StyledCombo(tb, ["All Types"] + HEALTH_TYPES, 130)
+        self.c_type_f.pack(side="left", padx=(8,0))
+        self.c_type_f.bind("<<ComboboxSelected>>", lambda _: self._apply_filters())
+        self._search_e = StyledEntry(tb, "Search description / med / vet…", 190)
+        self._search_e.pack(side="left", padx=(8,0))
+        self._search_e.bind("<KeyRelease>", lambda _: self._apply_filters())
 
         card=self._card()
         self.tbl=DataTable(card,[
@@ -451,11 +558,26 @@ class HealthPage(BasePage):
             c=get_connection().execute(
                 """SELECT h.id,c.name,h.date,h.record_type,
                           COALESCE(h.description,''),COALESCE(h.medicine,''),
-                          COALESCE(h.vet_name,''),h.cost
+                          COALESCE(h.vet_name,''),h.cost,h.cow_id
                    FROM health h JOIN cows c ON h.cow_id=c.id ORDER BY h.id DESC""")
-            self.tbl.load([tuple(r) for r in c.fetchall()])
+            self._rows = [tuple(r) for r in c.fetchall()]
             c.connection.close()
+            self._apply_filters()
         except Exception as e: self.err(str(e))
+
+    def _apply_filters(self):
+        rows = self._rows
+        cow_id = selected_cow_id(self.c_cow_f)
+        if cow_id is not None:
+            rows = [r for r in rows if r[8] == cow_id]
+        typ = self.c_type_f.get()
+        if typ != "All Types":
+            rows = [r for r in rows if r[3] == typ]
+        kw = self._search_e.get().lower()
+        if kw:
+            rows = [r for r in rows
+                    if any(kw in str(v).lower() for v in (r[1], r[4], r[5], r[6]))]  # cow, desc, med, vet
+        self.tbl.load([r[:8] for r in rows])
 
     def _add(self): HealthDialog(self, on_save=lambda m:(self.ok(m),self._load()))
     def _delete(self):
@@ -481,13 +603,12 @@ class HealthDialog(BaseDialog):
         def E(ph): return lambda row: StyledEntry(row, ph, 300)
         def C(v):  return lambda row: StyledCombo(row, v, 300)
         self.c_cow  = self.add_field("Cow *",        C(cows or ["No cows"]))
-        self.e_date = self.add_field("Date",         E(today()))
+        self.e_date = self.add_field("Date",         lambda row: DatePicker(row, today()))
         self.c_type = self.add_field("Record Type",  C(HEALTH_TYPES))
         self.e_desc = self.add_field("Description",  E("Symptoms / description"))
         self.e_med  = self.add_field("Medicine",     E("Medicine name"))
         self.e_vet  = self.add_field("Vet Name",     E("Vet name"))
         self.e_cost = self.add_field("Cost",         E("0.00"))
-        self.e_date.insert(0, today())
         self.add_buttons(self._save)
 
     def _save(self):
@@ -496,11 +617,13 @@ class HealthDialog(BaseDialog):
         cow_id=int(s.split("–")[0].strip())
         try: cost=float(self.e_cost.get() or 0)
         except: cost=0.0
+        dt = get_date_or_warn(self.e_date, "Date")
+        if dt is None: return
         try:
             conn=get_connection()
             conn.execute(
                 "INSERT INTO health (cow_id,date,record_type,description,medicine,vet_name,cost) VALUES(?,?,?,?,?,?,?)",
-                (cow_id,self.e_date.get().strip() or today(),self.c_type.get(),
+                (cow_id,dt,self.c_type.get(),
                  self.e_desc.get().strip(),self.e_med.get().strip(),
                  self.e_vet.get().strip(),cost))
             conn.commit(); conn.close()
@@ -630,8 +753,7 @@ class EmpDialog(BaseDialog):
         self.c_role   = self.add_field("Role",        C(EMPLOYEE_ROLES))
         self.e_phone  = self.add_field("Phone",       E("Phone number"))
         self.e_salary = self.add_field("Salary",      E("Monthly salary"))
-        self.e_date   = self.add_field("Join Date",   E(today()))
-        self.e_date.insert(0, today())
+        self.e_date   = self.add_field("Join Date",   lambda row: DatePicker(row, today()))
         self.add_buttons(self._save)
 
     def _save(self):
@@ -639,11 +761,13 @@ class EmpDialog(BaseDialog):
         if not name: messagebox.showwarning("","Name is required."); return
         try: salary=float(self.e_salary.get() or 0)
         except: salary=0.0
+        dt = get_date_or_warn(self.e_date, "Join date")
+        if dt is None: return
         try:
             conn=get_connection()
             conn.execute("INSERT INTO employees (name,role,phone,salary,join_date,status) VALUES(?,?,?,?,?,'Active')",
                          (name,self.c_role.get(),self.e_phone.get().strip(),
-                          salary,self.e_date.get().strip() or today()))
+                          salary,dt))
             conn.commit(); conn.close()
             self.on_save(f"Employee '{name}' added."); self.destroy()
         except Exception as e: messagebox.showerror("Error",str(e))
@@ -662,16 +786,16 @@ class AttDialog(BaseDialog):
         def E(ph): return lambda row: StyledEntry(row, ph, 300)
         def C(v):  return lambda row: StyledCombo(row, v, 300)
         self.c_emp   = self.add_field("Employee *", C(emps or ["No employees"]))
-        self.e_date  = self.add_field("Date",       E(today()))
+        self.e_date  = self.add_field("Date",       lambda row: DatePicker(row, today()))
         self.c_stat  = self.add_field("Status",     C(ATTENDANCE_STATUS))
-        self.e_date.insert(0, today())
         self.add_buttons(self._save)
 
     def _save(self):
         s=self.c_emp.get()
         if "–" not in s: messagebox.showwarning("","Select an employee."); return
         emp_id=int(s.split("–")[0].strip())
-        dt=self.e_date.get().strip() or today()
+        dt = get_date_or_warn(self.e_date, "Date")
+        if dt is None: return
         try:
             conn=get_connection()
             conn.execute("INSERT INTO attendance (employee_id,date,status) VALUES(?,?,?)",
@@ -772,10 +896,10 @@ class ExpensesPage(BasePage):
         row.pack(fill="x",padx=16,pady=14)
         ctk.CTkLabel(row,text="Start:",font=FONT_SMALL,
                      text_color=TEXT_SECONDARY,width=50).pack(side="left")
-        self._ps=StyledEntry(row,"YYYY-MM-DD",160); self._ps.pack(side="left",padx=(4,14))
+        self._ps=DatePicker(row,width=170); self._ps.pack(side="left",padx=(4,14))
         ctk.CTkLabel(row,text="End:",font=FONT_SMALL,
                      text_color=TEXT_SECONDARY,width=40).pack(side="left")
-        self._pe=StyledEntry(row,"YYYY-MM-DD",160); self._pe.pack(side="left",padx=(4,14))
+        self._pe=DatePicker(row,width=170); self._pe.pack(side="left",padx=(4,14))
         PrimaryButton(row,"Calculate",self._calc,width=120).pack(side="left")
 
         self._pres=ctk.CTkLabel(card,text="",
@@ -783,7 +907,9 @@ class ExpensesPage(BasePage):
         self._pres.pack(pady=16)
 
     def _calc(self):
-        s=self._ps.get().strip(); e=self._pe.get().strip()
+        s=get_date_or_warn(self._ps,"Start date"); 
+        e=get_date_or_warn(self._pe,"End date")
+        if s is None or e is None: return
         if not s or not e: self.err("Enter both dates."); return
         try:
             conn=get_connection(); c=conn.cursor()
@@ -804,20 +930,21 @@ class ExpDialog(BaseDialog):
         self.on_save=on_save
         def E(ph): return lambda row: StyledEntry(row, ph, 300)
         def C(v):  return lambda row: StyledCombo(row, v, 300)
-        self.e_date  = self.add_field("Date *",       E(today()))
+        self.e_date  = self.add_field("Date *",       lambda row: DatePicker(row, today()))
         self.c_cat   = self.add_field("Category *",   C(EXPENSE_CATEGORIES))
         self.e_amt   = self.add_field("Amount *",     E("Amount"))
         self.e_desc  = self.add_field("Description",  E("Description"))
-        self.e_date.insert(0, today())
         self.add_buttons(self._save)
 
     def _save(self):
         try: amt=float(self.e_amt.get()); assert amt>0
         except: messagebox.showwarning("","Enter valid amount."); return
+        dt = get_date_or_warn(self.e_date, "Date")
+        if dt is None: return
         try:
             conn=get_connection()
             conn.execute("INSERT INTO expenses (date,category,amount,description) VALUES(?,?,?,?)",
-                         (self.e_date.get().strip() or today(),self.c_cat.get(),
+                         (dt,self.c_cat.get(),
                           amt,self.e_desc.get().strip()))
             conn.commit(); conn.close()
             self.on_save(f"Expense {self.c_cat.get()} {amt:.2f} saved."); self.destroy()
@@ -829,12 +956,11 @@ class SaleDialog(BaseDialog):
         super().__init__(parent,"Record Milk Sale",440,380)
         self.on_save=on_save
         def E(ph): return lambda row: StyledEntry(row, ph, 300)
-        self.e_date   = self.add_field("Date *",        E(today()))
+        self.e_date   = self.add_field("Date *",        lambda row: DatePicker(row, today()))
         self.e_liters = self.add_field("Liters *",      E("Liters sold"))
         self.e_price  = self.add_field("Price/Liter *", E("Price per liter"))
         self.e_buyer  = self.add_field("Buyer",         E("Buyer name"))
         self.e_notes  = self.add_field("Notes",         E("Notes"))
-        self.e_date.insert(0, today())
         self._tlbl    = ctk.CTkLabel(self.body,text="Total: –",
                                      font=FONT_SUBHEAD,text_color=SUCCESS)
         self._tlbl.pack(anchor="w",padx=8,pady=(4,0))
@@ -852,10 +978,12 @@ class SaleDialog(BaseDialog):
             assert liters>0 and price>0
         except: messagebox.showwarning("","Enter valid liters and price."); return
         total=liters*price
+        dt = get_date_or_warn(self.e_date, "Date")
+        if dt is None: return
         try:
             conn=get_connection()
             conn.execute("INSERT INTO sales (date,liters_sold,price_per_liter,total_amount,buyer_name,notes) VALUES(?,?,?,?,?,?)",
-                         (self.e_date.get().strip() or today(),liters,price,total,
+                         (dt,liters,price,total,
                           self.e_buyer.get().strip(),self.e_notes.get().strip()))
             conn.commit(); conn.close()
             self.on_save(f"Sale recorded: {liters}L = {total:,.2f}"); self.destroy()
@@ -879,15 +1007,19 @@ class ReportsPage(BasePage):
         ctk.CTkLabel(row,text="Type:",font=FONT_SMALL,
                      text_color=TEXT_SECONDARY).pack(side="left")
         self._rtype=StyledCombo(row,["Daily Report","Monthly Report",
-                                     "Milk Production","Expense Report"],width=200)
-        self._rtype.pack(side="left",padx=(6,18))
+                                     "Milk Production","Expense Report"],width=170)
+        self._rtype.pack(side="left",padx=(6,12))
+        ctk.CTkLabel(row,text="Cow:",font=FONT_SMALL,
+                     text_color=TEXT_SECONDARY).pack(side="left")
+        self._rcow=StyledCombo(row, cow_filter_options(), 140)
+        self._rcow.pack(side="left",padx=(6,12))
         ctk.CTkLabel(row,text="From:",font=FONT_SMALL,
                      text_color=TEXT_SECONDARY).pack(side="left")
-        self._rs=StyledEntry(row,"YYYY-MM-DD",130); self._rs.pack(side="left",padx=(4,12))
+        self._rs=DatePicker(row,width=140); self._rs.pack(side="left",padx=(4,10))
         ctk.CTkLabel(row,text="To:",font=FONT_SMALL,
                      text_color=TEXT_SECONDARY).pack(side="left")
-        self._re=StyledEntry(row,"YYYY-MM-DD",130); self._re.pack(side="left",padx=(4,12))
-        PrimaryButton(row,"📊 Generate",self._gen,width=130).pack(side="left")
+        self._re=DatePicker(row,width=140); self._re.pack(side="left",padx=(4,10))
+        PrimaryButton(row,"📊 Generate",self._gen,width=120).pack(side="left")
 
         card=SectionCard(self)
         card.pack(fill="both",expand=True,padx=20,pady=(0,16))
@@ -905,12 +1037,16 @@ class ReportsPage(BasePage):
         self._out.configure(state="disabled")
 
     def _gen(self):
-        rt=self._rtype.get(); s=self._rs.get().strip(); e=self._re.get().strip()
+        rt=self._rtype.get()
+        s=get_date_or_warn(self._rs,"From date"); 
+        e=get_date_or_warn(self._re,"To date")
+        if s is None or e is None: return
+        cow_id = selected_cow_id(self._rcow)
         if "Daily"    in rt: self._write(self._daily(s or today()))
         elif "Monthly" in rt: self._write(self._monthly((s or today())[:7]))
         elif "Milk"    in rt:
             if not s or not e: self.err("Enter start and end dates."); return
-            self._write(self._milk(s,e))
+            self._write(self._milk(s,e,cow_id))
         elif "Expense" in rt:
             if not s or not e: self.err("Enter start and end dates."); return
             self._write(self._expense(s,e))
@@ -954,14 +1090,20 @@ class ReportsPage(BasePage):
             conn.close(); return "\n".join(L)
         except Exception as e: return f"Error: {e}"
 
-    def _milk(self,s,e):
+    def _milk(self,s,e,cow_id=None):
         try:
             conn=get_connection(); c=conn.cursor()
-            c.execute("""SELECT c.name,SUM(m.liters),COUNT(*) FROM milk m
-                         JOIN cows c ON m.cow_id=c.id WHERE m.date BETWEEN ? AND ?
-                         GROUP BY m.cow_id ORDER BY SUM(m.liters) DESC""",(s,e))
+            if cow_id is None:
+                c.execute("""SELECT c.name,SUM(m.liters),COUNT(*) FROM milk m
+                             JOIN cows c ON m.cow_id=c.id WHERE m.date BETWEEN ? AND ?
+                             GROUP BY m.cow_id ORDER BY SUM(m.liters) DESC""",(s,e))
+            else:
+                c.execute("""SELECT c.name,SUM(m.liters),COUNT(*) FROM milk m
+                             JOIN cows c ON m.cow_id=c.id WHERE m.date BETWEEN ? AND ?
+                             AND m.cow_id=? GROUP BY m.cow_id""",(s,e,cow_id))
             rows=c.fetchall(); conn.close()
-            L=[f"{'='*58}",f"  MILK PRODUCTION  –  {s} to {e}",f"{'='*58}",
+            scope = "ALL COWS" if cow_id is None else "SINGLE COW"
+            L=[f"{'='*58}",f"  MILK PRODUCTION  –  {s} to {e}  [{scope}]",f"{'='*58}",
                f"  {'Cow':<22}{'Sessions':>10}{'Total (L)':>12}","─"*58]
             gt=0
             for r in rows: L.append(f"  {r[0]:<22}{r[2]:>10}{r[1]:>12.2f}"); gt+=r[1]
