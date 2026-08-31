@@ -2,8 +2,10 @@
 # gui/widgets.py - All Reusable Widgets
 # =============================================================
 
+import calendar as _calendar
 import tkinter as tk
 from tkinter import ttk
+from datetime import date
 import customtkinter as ctk
 from gui.theme import *
 
@@ -62,6 +64,196 @@ class StyledCombo(ctk.CTkComboBox):
                          font=FONT_BODY, **kw)
         if values:
             self.set(values[0])
+
+
+# ── Date Picker with calendar popup ─────────────────────────
+
+class DatePicker(ctk.CTkFrame):
+    """Text entry (YYYY-MM-DD) + button that opens a calendar popup.
+
+    Keeps the same width as other inputs so it drops into existing
+    forms. `entry` is the inner ctk.CTkEntry, so callers can bind
+    <KeyRelease> to it for live filtering/validation.
+    """
+    def __init__(self, master, initial=None, width=300, **kw):
+        super().__init__(master, fg_color="transparent",
+                         width=width, height=INPUT_HEIGHT, **kw)
+        self.pack_propagate(False)
+
+        self._popup = None
+        self.entry = ctk.CTkEntry(
+            self,
+            placeholder_text="YYYY-MM-DD",
+            width=width - 48,
+            height=INPUT_HEIGHT,
+            corner_radius=INPUT_CORNER,
+            fg_color=INPUT_BG,
+            border_color=BORDER,
+            text_color=TEXT_PRIMARY,
+            placeholder_text_color=TEXT_MUTED,
+            font=FONT_BODY
+        )
+        self.entry.pack(side="left")
+
+        self._btn = ctk.CTkButton(
+            self,
+            text="📅",
+            width=42,
+            height=INPUT_HEIGHT,
+            corner_radius=INPUT_CORNER,
+            fg_color=INPUT_BG,
+            hover_color=SIDEBAR_HOVER,
+            text_color=TEXT_MUTED,
+            border_color=BORDER,
+            border_width=1,
+            font=("Segoe UI Emoji", 13),
+            command=self._open
+        )
+        self._btn.pack(side="left", padx=(4, 0))
+
+        if initial:
+            self.set(initial)
+
+    def set(self, d):
+        if isinstance(d, date):
+            d = d.isoformat()
+        self.entry.delete(0, "end")
+        self.entry.insert(0, str(d))
+
+    def get(self):
+        return self.entry.get()
+
+    def _open(self):
+        if self._popup is not None and self._popup.winfo_exists():
+            self._popup.focus()
+            return
+        self._popup = CalendarPopup(self, value=self.get())
+
+    # Proxy methods so callers can treat this like a plain Entry
+    def delete(self, a, b=None):
+        self.entry.delete(a, b if b is not None else "end")
+    def insert(self, i, s):
+        self.entry.insert(i, s)
+    def focus(self):
+        self.entry.focus()
+
+
+class CalendarPopup(ctk.CTkToplevel):
+    """Small month-view calendar. Pick a day → writes YYYY-MM-DD back."""
+    def __init__(self, picker, value=None):
+        super().__init__(picker)
+        self.picker = picker
+        self.title("Select Date")
+        self.configure(fg_color=BG_MEDIUM)
+        self.resizable(False, False)
+        self.grab_set()
+
+        # Month currently shown in the grid; keep any valid selected day
+        today = date.today()
+        self._sel = None
+        if value:
+            try:
+                self._sel = date.fromisoformat(str(value).strip())
+            except ValueError:
+                self._sel = None
+        self.year, self.month = (self._sel.year, self._sel.month) if self._sel \
+            else (today.year, today.month)
+
+        # Header: ‹ month year ›
+        head = ctk.CTkFrame(self, fg_color="transparent")
+        head.pack(fill="x", padx=10, pady=(10, 4))
+        ctk.CTkButton(head, text="‹", width=34, height=30,
+                      corner_radius=6, fg_color=BG_LIGHT,
+                      hover_color=SIDEBAR_HOVER, text_color=TEXT_PRIMARY,
+                      font=("Segoe UI", 14, "bold"),
+                      command=lambda: self._shift(-1)).pack(side="left")
+        self._lbl = ctk.CTkLabel(head, text="", font=FONT_HEADING,
+                                 text_color=TEXT_PRIMARY)
+        self._lbl.pack(side="left", expand=True)
+        ctk.CTkButton(head, text="›", width=34, height=30,
+                      corner_radius=6, fg_color=BG_LIGHT,
+                      hover_color=SIDEBAR_HOVER, text_color=TEXT_PRIMARY,
+                      font=("Segoe UI", 14, "bold"),
+                      command=lambda: self._shift(1)).pack(side="left")
+
+        # Day-name row
+        self._day_names = ["Mo", "Tu", "We", "Th", "Fr", "Sa", "Su"]
+        names = ctk.CTkFrame(self, fg_color="transparent")
+        names.pack(fill="x", padx=10)
+        for i, n in enumerate(self._day_names):
+            ctk.CTkLabel(names, text=n, font=FONT_TINY,
+                         text_color=TEXT_MUTED).grid(
+                row=0, column=i, padx=1, pady=1, sticky="ew")
+            names.grid_columnconfigure(i, weight=1)
+
+        # Day grid
+        self._grid = ctk.CTkFrame(self, fg_color="transparent")
+        self._grid.pack(fill="x", padx=10, pady=(2, 10))
+        self._build()
+
+        # Footer: Today button + Cancel
+        foot = ctk.CTkFrame(self, fg_color="transparent")
+        foot.pack(fill="x", padx=10, pady=(0, 10))
+        SecondaryButton(foot, "Today", lambda: self._pick(today), width=80).pack(
+            side="left", padx=(0, 8))
+        SecondaryButton(foot, "Cancel", self.destroy, width=80).pack(side="left")
+
+        self._center_over()
+
+    def _build(self):
+        for w in self._grid.winfo_children():
+            w.destroy()
+
+        self._lbl.configure(
+            text=f"{_calendar.month_name[self.month]} {self.year}")
+
+        first = date(self.year, self.month, 1)
+        start_col = first.weekday()          # 0=Mon
+        days = _calendar.monthrange(self.year, self.month)[1]
+        today = date.today()
+
+        for i in range(6 * 7):
+            day_num = i - start_col + 1
+            r, c = divmod(i, 7)
+            if not (1 <= day_num <= days):
+                ctk.CTkLabel(self._grid, text="", width=36, height=30,
+                             fg_color="transparent").grid(
+                    row=r, column=c, padx=1, pady=1)
+                continue
+            d = date(self.year, self.month, day_num)
+            is_today = d == today
+            is_sel = self._sel is not None and d == self._sel
+            fg = PRIMARY if is_today else TEXT_PRIMARY
+            bg = CARD_BG if is_today else ("transparent" if c % 2 == 0 else BG_LIGHT)
+            btn = ctk.CTkButton(
+                self._grid, text=str(day_num), width=36, height=30,
+                corner_radius=6, fg_color=bg, hover_color=PRIMARY_HOVER,
+                text_color=fg, font=("Segoe UI", 11),
+                command=lambda dd=d: self._pick(dd))
+            btn.grid(row=r, column=c, padx=1, pady=1)
+
+    def _shift(self, delta):
+        m = self.month + delta
+        y = self.year
+        if m < 1:
+            m, y = 12, y - 1
+        elif m > 12:
+            m, y = 1, y + 1
+        self.month, self.year = m, y
+        self._build()
+
+    def _pick(self, d):
+        self.picker.set(d)
+        self.destroy()
+
+    def _center_over(self):
+        self.update_idletasks()
+        w = self.winfo_reqwidth()
+        h = self.winfo_reqheight()
+        p = self.picker
+        px = p.winfo_rootx() + (p.winfo_width() - w) // 2
+        py = p.winfo_rooty() + (p.winfo_height() - h) // 2
+        self.geometry(f"{w}x{h}+{max(px, 0)}+{max(py, 0)}")
 
 
 # ── Password field with 👁 toggle ────────────────────────────

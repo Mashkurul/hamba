@@ -15,10 +15,32 @@ from gui.widgets import (PrimaryButton, DangerButton, SecondaryButton,
                          StyledLabel, StyledEntry, StyledCombo,
                          PasswordEntry, SectionCard, PageHeader,
                          DataTable, NotificationBar, StatCard,
-                         BaseDialog, form_row, divider)
+                         BaseDialog, DatePicker, form_row, divider)
 
 
 def today(): return str(date.today())
+
+
+def valid_date(s):
+    """Return a normalized 'YYYY-MM-DD' string if s is a real date, else None."""
+    try:
+        return date.fromisoformat(str(s).strip()).isoformat()
+    except ValueError:
+        return None
+
+
+def get_date_or_warn(entry, label):
+    """Validate a date entry; warn on impossible dates. Returns str or None."""
+    raw = entry.get().strip()
+    if not raw:
+        return today()
+    d = valid_date(raw)
+    if d is None:
+        messagebox.showwarning("Invalid Date",
+                               f"{label}: '{raw}' is not a valid date.\n"
+                               "Use the 📅 calendar or format YYYY-MM-DD.")
+        return None
+    return d
 
 
 # ── Helper: dialog heading ────────────────────────────────────
@@ -220,11 +242,10 @@ class CowDialog(BaseDialog):
         self.e_color  = self.add_field("Color",      E("e.g. Black & White"))
         self.e_age    = self.add_field("Age (yrs)",  E("Years"))
         self.e_weight = self.add_field("Weight (kg)",E("kg"))
-        self.e_date   = self.add_field("Purchase Date", E(today()))
+        self.e_date   = self.add_field("Purchase Date", lambda row: DatePicker(row, today()))
         self.c_gender = self.add_field("Gender",     C(GENDER_OPTIONS))
         self.c_status = self.add_field("Status",     C(COW_STATUS_OPTIONS))
 
-        self.e_date.insert(0, today())
         self.add_buttons(self._save)
 
         if cow_id:
@@ -234,8 +255,9 @@ class CowDialog(BaseDialog):
                 row=c.fetchone(); conn.close()
                 if row:
                     for e,k in [(self.e_name,"name"),(self.e_breed,"breed"),
-                                (self.e_color,"color"),(self.e_date,"purchase_date")]:
+                                (self.e_color,"color")]:
                         e.delete(0,"end"); e.insert(0,row[k] or "")
+                    self.e_date.set(row["purchase_date"] or today())
                     self.e_age.delete(0,"end");    self.e_age.insert(0,str(row["age"] or ""))
                     self.e_weight.delete(0,"end"); self.e_weight.insert(0,str(row["weight"] or ""))
                     self.c_gender.set(row["gender"] or GENDER_OPTIONS[0])
@@ -253,7 +275,8 @@ class CowDialog(BaseDialog):
         color  = self.e_color.get().strip()
         gender = self.c_gender.get()
         status = self.c_status.get()
-        pdate  = self.e_date.get().strip() or today()
+        pdate  = get_date_or_warn(self.e_date, "Purchase date")
+        if pdate is None: return
         try:
             conn=get_connection(); c=conn.cursor()
             if self.cow_id:
@@ -324,11 +347,10 @@ class MilkDialog(BaseDialog):
         def E(ph): return lambda row: StyledEntry(row, ph, 300)
         def C(v):  return lambda row: StyledCombo(row, v, 300)
         self.c_cow    = self.add_field("Cow *",     C(cows or ["No active cows"]))
-        self.e_date   = self.add_field("Date",      E(today()))
+        self.e_date   = self.add_field("Date",      lambda row: DatePicker(row, today()))
         self.e_liters = self.add_field("Liters *",  E("e.g. 12.5"))
         self.c_sess   = self.add_field("Session",   C(["Morning","Afternoon","Evening"]))
         self.e_notes  = self.add_field("Notes",     E("Optional"))
-        self.e_date.insert(0, today())
         self.add_buttons(self._save)
 
     def _save(self):
@@ -337,7 +359,8 @@ class MilkDialog(BaseDialog):
         cow_id=int(s.split("–")[0].strip())
         try: liters=float(self.e_liters.get()); assert liters>=0
         except: messagebox.showwarning("","Enter valid liters."); return
-        dt=self.e_date.get().strip() or today()
+        dt = get_date_or_warn(self.e_date, "Date")
+        if dt is None: return
         try:
             conn=get_connection()
             conn.execute("INSERT INTO milk (cow_id,date,liters,session,notes) VALUES(?,?,?,?,?)",
@@ -402,10 +425,9 @@ class FoodDialog(BaseDialog):
         def C(v):  return lambda row: StyledCombo(row, v, 300)
         self.c_type  = self.add_field("Food Type *",    C(FOOD_TYPES))
         self.e_qty   = self.add_field("Quantity (kg) *",E("kg"))
-        self.e_date  = self.add_field("Date",           E(today()))
+        self.e_date  = self.add_field("Date",           lambda row: DatePicker(row, today()))
         self.c_cow   = self.add_field("Cow",            C(cows))
         self.e_notes = self.add_field("Notes",          E("Optional"))
-        self.e_date.insert(0, today())
         self.add_buttons(self._save)
 
     def _save(self):
@@ -413,7 +435,8 @@ class FoodDialog(BaseDialog):
         except: messagebox.showwarning("","Enter valid quantity."); return
         cow_str=self.c_cow.get()
         cow_id=int(cow_str.split("–")[0].strip()) if "–" in cow_str else None
-        dt=self.e_date.get().strip() or today()
+        dt = get_date_or_warn(self.e_date, "Date")
+        if dt is None: return
         try:
             conn=get_connection()
             conn.execute("INSERT INTO food (food_type,quantity_kg,date,cow_id,notes) VALUES(?,?,?,?,?)",
@@ -481,13 +504,12 @@ class HealthDialog(BaseDialog):
         def E(ph): return lambda row: StyledEntry(row, ph, 300)
         def C(v):  return lambda row: StyledCombo(row, v, 300)
         self.c_cow  = self.add_field("Cow *",        C(cows or ["No cows"]))
-        self.e_date = self.add_field("Date",         E(today()))
+        self.e_date = self.add_field("Date",         lambda row: DatePicker(row, today()))
         self.c_type = self.add_field("Record Type",  C(HEALTH_TYPES))
         self.e_desc = self.add_field("Description",  E("Symptoms / description"))
         self.e_med  = self.add_field("Medicine",     E("Medicine name"))
         self.e_vet  = self.add_field("Vet Name",     E("Vet name"))
         self.e_cost = self.add_field("Cost",         E("0.00"))
-        self.e_date.insert(0, today())
         self.add_buttons(self._save)
 
     def _save(self):
@@ -496,11 +518,13 @@ class HealthDialog(BaseDialog):
         cow_id=int(s.split("–")[0].strip())
         try: cost=float(self.e_cost.get() or 0)
         except: cost=0.0
+        dt = get_date_or_warn(self.e_date, "Date")
+        if dt is None: return
         try:
             conn=get_connection()
             conn.execute(
                 "INSERT INTO health (cow_id,date,record_type,description,medicine,vet_name,cost) VALUES(?,?,?,?,?,?,?)",
-                (cow_id,self.e_date.get().strip() or today(),self.c_type.get(),
+                (cow_id,dt,self.c_type.get(),
                  self.e_desc.get().strip(),self.e_med.get().strip(),
                  self.e_vet.get().strip(),cost))
             conn.commit(); conn.close()
@@ -630,8 +654,7 @@ class EmpDialog(BaseDialog):
         self.c_role   = self.add_field("Role",        C(EMPLOYEE_ROLES))
         self.e_phone  = self.add_field("Phone",       E("Phone number"))
         self.e_salary = self.add_field("Salary",      E("Monthly salary"))
-        self.e_date   = self.add_field("Join Date",   E(today()))
-        self.e_date.insert(0, today())
+        self.e_date   = self.add_field("Join Date",   lambda row: DatePicker(row, today()))
         self.add_buttons(self._save)
 
     def _save(self):
@@ -639,11 +662,13 @@ class EmpDialog(BaseDialog):
         if not name: messagebox.showwarning("","Name is required."); return
         try: salary=float(self.e_salary.get() or 0)
         except: salary=0.0
+        dt = get_date_or_warn(self.e_date, "Join date")
+        if dt is None: return
         try:
             conn=get_connection()
             conn.execute("INSERT INTO employees (name,role,phone,salary,join_date,status) VALUES(?,?,?,?,?,'Active')",
                          (name,self.c_role.get(),self.e_phone.get().strip(),
-                          salary,self.e_date.get().strip() or today()))
+                          salary,dt))
             conn.commit(); conn.close()
             self.on_save(f"Employee '{name}' added."); self.destroy()
         except Exception as e: messagebox.showerror("Error",str(e))
@@ -662,16 +687,16 @@ class AttDialog(BaseDialog):
         def E(ph): return lambda row: StyledEntry(row, ph, 300)
         def C(v):  return lambda row: StyledCombo(row, v, 300)
         self.c_emp   = self.add_field("Employee *", C(emps or ["No employees"]))
-        self.e_date  = self.add_field("Date",       E(today()))
+        self.e_date  = self.add_field("Date",       lambda row: DatePicker(row, today()))
         self.c_stat  = self.add_field("Status",     C(ATTENDANCE_STATUS))
-        self.e_date.insert(0, today())
         self.add_buttons(self._save)
 
     def _save(self):
         s=self.c_emp.get()
         if "–" not in s: messagebox.showwarning("","Select an employee."); return
         emp_id=int(s.split("–")[0].strip())
-        dt=self.e_date.get().strip() or today()
+        dt = get_date_or_warn(self.e_date, "Date")
+        if dt is None: return
         try:
             conn=get_connection()
             conn.execute("INSERT INTO attendance (employee_id,date,status) VALUES(?,?,?)",
@@ -772,10 +797,10 @@ class ExpensesPage(BasePage):
         row.pack(fill="x",padx=16,pady=14)
         ctk.CTkLabel(row,text="Start:",font=FONT_SMALL,
                      text_color=TEXT_SECONDARY,width=50).pack(side="left")
-        self._ps=StyledEntry(row,"YYYY-MM-DD",160); self._ps.pack(side="left",padx=(4,14))
+        self._ps=DatePicker(row,width=170); self._ps.pack(side="left",padx=(4,14))
         ctk.CTkLabel(row,text="End:",font=FONT_SMALL,
                      text_color=TEXT_SECONDARY,width=40).pack(side="left")
-        self._pe=StyledEntry(row,"YYYY-MM-DD",160); self._pe.pack(side="left",padx=(4,14))
+        self._pe=DatePicker(row,width=170); self._pe.pack(side="left",padx=(4,14))
         PrimaryButton(row,"Calculate",self._calc,width=120).pack(side="left")
 
         self._pres=ctk.CTkLabel(card,text="",
@@ -783,7 +808,9 @@ class ExpensesPage(BasePage):
         self._pres.pack(pady=16)
 
     def _calc(self):
-        s=self._ps.get().strip(); e=self._pe.get().strip()
+        s=get_date_or_warn(self._ps,"Start date"); 
+        e=get_date_or_warn(self._pe,"End date")
+        if s is None or e is None: return
         if not s or not e: self.err("Enter both dates."); return
         try:
             conn=get_connection(); c=conn.cursor()
@@ -804,20 +831,21 @@ class ExpDialog(BaseDialog):
         self.on_save=on_save
         def E(ph): return lambda row: StyledEntry(row, ph, 300)
         def C(v):  return lambda row: StyledCombo(row, v, 300)
-        self.e_date  = self.add_field("Date *",       E(today()))
+        self.e_date  = self.add_field("Date *",       lambda row: DatePicker(row, today()))
         self.c_cat   = self.add_field("Category *",   C(EXPENSE_CATEGORIES))
         self.e_amt   = self.add_field("Amount *",     E("Amount"))
         self.e_desc  = self.add_field("Description",  E("Description"))
-        self.e_date.insert(0, today())
         self.add_buttons(self._save)
 
     def _save(self):
         try: amt=float(self.e_amt.get()); assert amt>0
         except: messagebox.showwarning("","Enter valid amount."); return
+        dt = get_date_or_warn(self.e_date, "Date")
+        if dt is None: return
         try:
             conn=get_connection()
             conn.execute("INSERT INTO expenses (date,category,amount,description) VALUES(?,?,?,?)",
-                         (self.e_date.get().strip() or today(),self.c_cat.get(),
+                         (dt,self.c_cat.get(),
                           amt,self.e_desc.get().strip()))
             conn.commit(); conn.close()
             self.on_save(f"Expense {self.c_cat.get()} {amt:.2f} saved."); self.destroy()
@@ -829,12 +857,11 @@ class SaleDialog(BaseDialog):
         super().__init__(parent,"Record Milk Sale",440,380)
         self.on_save=on_save
         def E(ph): return lambda row: StyledEntry(row, ph, 300)
-        self.e_date   = self.add_field("Date *",        E(today()))
+        self.e_date   = self.add_field("Date *",        lambda row: DatePicker(row, today()))
         self.e_liters = self.add_field("Liters *",      E("Liters sold"))
         self.e_price  = self.add_field("Price/Liter *", E("Price per liter"))
         self.e_buyer  = self.add_field("Buyer",         E("Buyer name"))
         self.e_notes  = self.add_field("Notes",         E("Notes"))
-        self.e_date.insert(0, today())
         self._tlbl    = ctk.CTkLabel(self.body,text="Total: –",
                                      font=FONT_SUBHEAD,text_color=SUCCESS)
         self._tlbl.pack(anchor="w",padx=8,pady=(4,0))
@@ -852,10 +879,12 @@ class SaleDialog(BaseDialog):
             assert liters>0 and price>0
         except: messagebox.showwarning("","Enter valid liters and price."); return
         total=liters*price
+        dt = get_date_or_warn(self.e_date, "Date")
+        if dt is None: return
         try:
             conn=get_connection()
             conn.execute("INSERT INTO sales (date,liters_sold,price_per_liter,total_amount,buyer_name,notes) VALUES(?,?,?,?,?,?)",
-                         (self.e_date.get().strip() or today(),liters,price,total,
+                         (dt,liters,price,total,
                           self.e_buyer.get().strip(),self.e_notes.get().strip()))
             conn.commit(); conn.close()
             self.on_save(f"Sale recorded: {liters}L = {total:,.2f}"); self.destroy()
@@ -883,10 +912,10 @@ class ReportsPage(BasePage):
         self._rtype.pack(side="left",padx=(6,18))
         ctk.CTkLabel(row,text="From:",font=FONT_SMALL,
                      text_color=TEXT_SECONDARY).pack(side="left")
-        self._rs=StyledEntry(row,"YYYY-MM-DD",130); self._rs.pack(side="left",padx=(4,12))
+        self._rs=DatePicker(row,width=150); self._rs.pack(side="left",padx=(4,12))
         ctk.CTkLabel(row,text="To:",font=FONT_SMALL,
                      text_color=TEXT_SECONDARY).pack(side="left")
-        self._re=StyledEntry(row,"YYYY-MM-DD",130); self._re.pack(side="left",padx=(4,12))
+        self._re=DatePicker(row,width=150); self._re.pack(side="left",padx=(4,12))
         PrimaryButton(row,"📊 Generate",self._gen,width=130).pack(side="left")
 
         card=SectionCard(self)
@@ -905,7 +934,10 @@ class ReportsPage(BasePage):
         self._out.configure(state="disabled")
 
     def _gen(self):
-        rt=self._rtype.get(); s=self._rs.get().strip(); e=self._re.get().strip()
+        rt=self._rtype.get()
+        s=get_date_or_warn(self._rs,"From date"); 
+        e=get_date_or_warn(self._re,"To date")
+        if s is None or e is None: return
         if "Daily"    in rt: self._write(self._daily(s or today()))
         elif "Monthly" in rt: self._write(self._monthly((s or today())[:7]))
         elif "Milk"    in rt:
