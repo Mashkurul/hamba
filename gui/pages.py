@@ -1,12 +1,7 @@
-# =============================================================
-# gui/pages.py  –  All Feature Pages (complete rewrite)
-# =============================================================
-
 import hashlib, tkinter as tk
 from tkinter  import messagebox
 from datetime import date
 import customtkinter as ctk
-
 from database import get_connection
 from config   import (COW_STATUS_OPTIONS, GENDER_OPTIONS, FOOD_TYPES,
                       EMPLOYEE_ROLES, ATTENDANCE_STATUS, EXPENSE_CATEGORIES)
@@ -16,11 +11,7 @@ from gui.widgets import (PrimaryButton, DangerButton, SecondaryButton,
                          PasswordEntry, SectionCard, PageHeader,
                          DataTable, NotificationBar, StatCard,
                          BaseDialog, DatePicker, form_row, divider)
-
-
 def today(): return str(date.today())
-
-
 def cow_filter_options(include_all=True):
     """List of 'All Cows' + 'ID – Name' entries for cow filter dropdowns."""
     try:
@@ -31,8 +22,6 @@ def cow_filter_options(include_all=True):
     except Exception:
         cows = []
     return (["All Cows"] if include_all else []) + cows
-
-
 def selected_cow_id(combo):
     """Return cow id from a 'ID – Name' combo value, or None for 'All Cows'."""
     s = combo.get() if combo else "All Cows"
@@ -42,16 +31,12 @@ def selected_cow_id(combo):
         return int(s.split("–")[0].strip())
     except ValueError:
         return None
-
-
 def valid_date(s):
     """Return a normalized 'YYYY-MM-DD' string if s is a real date, else None."""
     try:
         return date.fromisoformat(str(s).strip()).isoformat()
     except ValueError:
         return None
-
-
 def get_date_or_warn(entry, label):
     """Validate a date entry; warn on impossible dates. Returns str or None."""
     raw = entry.get().strip()
@@ -64,56 +49,35 @@ def get_date_or_warn(entry, label):
                                "Use the 📅 calendar or format YYYY-MM-DD.")
         return None
     return d
-
-
-# ── Helper: dialog heading ────────────────────────────────────
 def dlg_sep(parent): divider(parent, padx=0, pady=8)
-
-
-# =============================================================
-#  BASE PAGE
-# =============================================================
 class BasePage(ctk.CTkFrame):
     def __init__(self, master, user, **kw):
         super().__init__(master, fg_color=BG_DARK, corner_radius=0, **kw)
         self.user   = user
         self.notify = NotificationBar(self)
-
     def ok(self, m):   self.notify.show(m, "success")
     def err(self, m):  self.notify.show(m, "error")
     def info(self, m): self.notify.show(m, "info")
-
     def _header(self, title, sub=""):
         PageHeader(self, title, sub).pack(anchor="w", padx=24, pady=(18,10))
-        # Notification bar is packed only when a notification is shown
         self.notify.pack_forget()
-
     def _toolbar(self):
         f = ctk.CTkFrame(self, fg_color="transparent")
         f.pack(fill="x", padx=20, pady=(0,8))
         return f
-
     def _card(self):
         c = SectionCard(self)
         c.pack(fill="both", expand=True, padx=20, pady=(0,16))
         return c
-
     def _action_bar(self, parent):
         f = ctk.CTkFrame(parent, fg_color="transparent")
         f.pack(fill="x", padx=10, pady=(0,10))
         return f
-
-
-# =============================================================
-#  DASHBOARD
-# =============================================================
 class DashboardPage(BasePage):
     def __init__(self, master, user):
         super().__init__(master, user)
         self._header("Dashboard", "Farm overview at a glance")
         stats = self._stats()
-
-        # ── Stat cards ──
         sf = ctk.CTkFrame(self, fg_color="transparent")
         sf.pack(fill="x", padx=20, pady=(0,12))
         for i,(t,v,ic,col) in enumerate([
@@ -127,14 +91,11 @@ class DashboardPage(BasePage):
             StatCard(sf, t, v, ic, col).grid(
                 row=0, column=i, padx=6, pady=4, sticky="ew", ipady=4)
             sf.grid_columnconfigure(i, weight=1)
-
-        # ── Two tables ──
         lower = ctk.CTkFrame(self, fg_color="transparent")
         lower.pack(fill="both", expand=True, padx=20, pady=(0,16))
         lower.grid_columnconfigure(0, weight=1)
         lower.grid_columnconfigure(1, weight=1)
         lower.grid_rowconfigure(0, weight=1)
-
         def half(col, title, badge):
             c = SectionCard(lower)
             c.grid(row=0, column=col, padx=(0,8) if col==0 else (8,0), sticky="nsew")
@@ -146,20 +107,16 @@ class DashboardPage(BasePage):
                          text_color=TEXT_MUTED).pack(side="right")
             divider(c, padx=14, pady=0)
             return c
-
         lc = half(0, "Recent Cows",    f"Total: {stats['cows']}")
         rc = half(1, "Milk Records",   f"Today: {stats['milk_today']:.1f} L")
-
         t1 = DataTable(lc, [("id","ID",45),("name","Name",130),
                              ("breed","Breed",110),("status","Status",80)])
         t1.pack(fill="both", expand=True, padx=10, pady=(6,10))
         t1.load(stats["recent_cows"])
-
         t2 = DataTable(rc, [("cow","Cow",130),("date","Date",95),
                              ("liters","Liters",75),("session","Session",85)])
         t2.pack(fill="both", expand=True, padx=10, pady=(6,10))
         t2.load(stats["recent_milk"])
-
     def _stats(self):
         try:
             conn=get_connection(); c=conn.cursor(); m=today()[:7]
@@ -183,11 +140,6 @@ class DashboardPage(BasePage):
         except:
             return dict(cows=0,active=0,milk_today=0,employees=0,
                         revenue=0,health=0,recent_cows=[],recent_milk=[])
-
-
-# =============================================================
-#  COWS
-# =============================================================
 class CowsPage(BasePage):
     def __init__(self, master, user):
         super().__init__(master, user)
@@ -206,7 +158,6 @@ class CowsPage(BasePage):
         self.c_gender_f = StyledCombo(tb, ["All Genders"] + GENDER_OPTIONS, 120)
         self.c_gender_f.pack(side="left", padx=(8,0))
         self.c_gender_f.bind("<<ComboboxSelected>>", lambda _: self._apply_filters())
-
         card = self._card()
         self.tbl = DataTable(card,[
             ("id","ID",50),("name","Name",120),("breed","Breed",110),
@@ -214,7 +165,6 @@ class CowsPage(BasePage):
             ("gender","Gender",80),("color","Color",80),
             ("pd","Purchased",100),("status","Status",80)])
         self.tbl.pack(fill="both", expand=True, padx=10, pady=10)
-
         if not read_only:
             ab = self._action_bar(card)
             PrimaryButton(ab, "✏️ Edit",   self._edit,   width=130).pack(side="left", padx=(0,8))
@@ -223,10 +173,8 @@ class CowsPage(BasePage):
             StyledLabel(card, "🔒  Read-only view for your role.",
                         font=FONT_SMALL, text_color=TEXT_MUTED).pack(
                 anchor="w", padx=14, pady=(0, 10))
-
         self._rows = []
         self._load()
-
     def _load(self):
         try:
             c = get_connection().execute(
@@ -235,7 +183,6 @@ class CowsPage(BasePage):
             c.connection.close()
             self._apply_filters()
         except Exception as e: self.err(str(e))
-
     def _apply_filters(self):
         kw = self._search_e.get().lower()
         st = self.c_status_f.get()
@@ -248,15 +195,13 @@ class CowsPage(BasePage):
         if kw:
             rows = [r for r in rows
                     if any(kw in str(v).lower()
-                           for v in (r[0], r[1], r[2], r[6]))]  # id, name, breed, color
+                           for v in (r[0], r[1], r[2], r[6]))]
         self.tbl.load(rows)
-
     def _add(self):    CowDialog(self, on_save=lambda m:(self.ok(m), self._load()))
     def _edit(self):
         r = self.tbl.get_selected()
         if not r: self.info("Select a row to edit."); return
         CowDialog(self, cow_id=r[0], on_save=lambda m:(self.ok(m), self._load()))
-
     def _delete(self):
         r = self.tbl.get_selected()
         if not r: self.info("Select a row to delete."); return
@@ -265,17 +210,13 @@ class CowsPage(BasePage):
                 conn=get_connection(); conn.execute("DELETE FROM cows WHERE id=?",(r[0],))
                 conn.commit(); conn.close(); self.ok(f"Cow '{r[1]}' deleted."); self._load()
             except Exception as e: self.err(str(e))
-
-
 class CowDialog(BaseDialog):
     def __init__(self, parent, on_save, cow_id=None):
         super().__init__(parent, "Edit Cow" if cow_id else "Add Cow", 500, 540)
         self.cow_id  = cow_id
         self.on_save = on_save
-
         def E(ph): return lambda row: StyledEntry(row, ph, 300)
         def C(v):  return lambda row: StyledCombo(row, v, 300)
-
         self.e_name   = self.add_field("Cow Name *", E("Cow name"))
         self.e_breed  = self.add_field("Breed",      E("e.g. Friesian"))
         self.e_color  = self.add_field("Color",      E("e.g. Black & White"))
@@ -284,9 +225,7 @@ class CowDialog(BaseDialog):
         self.e_date   = self.add_field("Purchase Date", lambda row: DatePicker(row, today()))
         self.c_gender = self.add_field("Gender",     C(GENDER_OPTIONS))
         self.c_status = self.add_field("Status",     C(COW_STATUS_OPTIONS))
-
         self.add_buttons(self._save)
-
         if cow_id:
             try:
                 conn=get_connection(); c=conn.cursor()
@@ -302,7 +241,6 @@ class CowDialog(BaseDialog):
                     self.c_gender.set(row["gender"] or GENDER_OPTIONS[0])
                     self.c_status.set(row["status"] or "Active")
             except: pass
-
     def _save(self):
         name = self.e_name.get().strip()
         if not name: messagebox.showwarning("","Name is required."); return
@@ -331,11 +269,6 @@ class CowDialog(BaseDialog):
             conn.commit(); conn.close()
             self.on_save(msg); self.destroy()
         except Exception as e: messagebox.showerror("Error",str(e))
-
-
-# =============================================================
-#  MILK
-# =============================================================
 class MilkPage(BasePage):
     def __init__(self, master, user):
         super().__init__(master, user)
@@ -349,7 +282,6 @@ class MilkPage(BasePage):
         self._search_e = StyledEntry(tb, "Search cow / notes…", 180)
         self._search_e.pack(side="left", padx=(8,0))
         self._search_e.bind("<KeyRelease>", lambda _: self._apply_filters())
-
         card = self._card()
         self.tbl = DataTable(card,[
             ("id","ID",50),("cow","Cow",120),("date","Date",100),
@@ -358,17 +290,15 @@ class MilkPage(BasePage):
         ab = self._action_bar(card)
         DangerButton(ab,"🗑️ Delete",self._delete,width=110).pack(side="left")
         self._load()
-
     def _load(self):
         try:
             c=get_connection().execute(
                 """SELECT m.cow_id, m.id,c.name,m.date,m.liters,m.session,COALESCE(m.notes,'')
                    FROM milk m JOIN cows c ON m.cow_id=c.id ORDER BY m.id DESC""")
-            self._rows = [tuple(r) for r in c.fetchall()]   # (cow_id, id, name, date, ...)
+            self._rows = [tuple(r) for r in c.fetchall()]
             c.connection.close()
             self._apply_filters()
         except Exception as e: self.err(str(e))
-
     def _apply_filters(self):
         rows = self._rows
         cow_id = selected_cow_id(self.c_cow_f)
@@ -377,9 +307,8 @@ class MilkPage(BasePage):
         kw = self._search_e.get().lower()
         if kw:
             rows = [r for r in rows
-                    if any(kw in str(v).lower() for v in (r[2], r[6]))]  # cow name, notes
+                    if any(kw in str(v).lower() for v in (r[2], r[6]))]
         self.tbl.load([r[1:] for r in rows])
-
     def _add(self): MilkDialog(self, on_save=lambda m:(self.ok(m),self._load()))
     def _delete(self):
         r=self.tbl.get_selected()
@@ -389,8 +318,6 @@ class MilkPage(BasePage):
                 conn=get_connection(); conn.execute("DELETE FROM milk WHERE id=?",(r[0],))
                 conn.commit(); conn.close(); self.ok("Record deleted."); self._load()
             except Exception as e: self.err(str(e))
-
-
 class MilkDialog(BaseDialog):
     def __init__(self, parent, on_save):
         super().__init__(parent,"Record Milk Production",440,410)
@@ -414,12 +341,10 @@ class MilkDialog(BaseDialog):
         self.c_sess   = self.add_field("Session",   C(["Morning","Afternoon","Evening"]))
         self.e_notes  = self.add_field("Notes",     E("Optional"))
         self.add_buttons(self._save)
-
     def _save(self):
         s=self.c_cow.get()
         if "–" not in s: messagebox.showwarning("","Select a female cow."); return
         cow_id=int(s.split("–")[0].strip())
-        # Guard: only female cows can have milk recorded
         try:
             c=get_connection().execute("SELECT gender FROM cows WHERE id=?",(cow_id,))
             row=c.fetchone(); c.connection.close()
@@ -439,11 +364,6 @@ class MilkDialog(BaseDialog):
             conn.commit(); conn.close()
             self.on_save(f"Recorded {liters}L."); self.destroy()
         except Exception as e: messagebox.showerror("Error",str(e))
-
-
-# =============================================================
-#  FOOD
-# =============================================================
 class FoodPage(BasePage):
     def __init__(self, master, user):
         super().__init__(master, user)
@@ -457,7 +377,6 @@ class FoodPage(BasePage):
         self._search_e = StyledEntry(tb, "Search food type / cow / notes…", 200)
         self._search_e.pack(side="left", padx=(8,0))
         self._search_e.bind("<KeyRelease>", lambda _: self._apply_filters())
-
         card=self._card()
         self.tbl=DataTable(card,[
             ("id","ID",50),("type","Food Type",120),("qty","Qty kg",85),
@@ -466,7 +385,6 @@ class FoodPage(BasePage):
         ab=self._action_bar(card)
         DangerButton(ab,"🗑️ Delete",self._delete,width=110).pack(side="left")
         self._load()
-
     def _load(self):
         try:
             c=get_connection().execute(
@@ -477,7 +395,6 @@ class FoodPage(BasePage):
             c.connection.close()
             self._apply_filters()
         except Exception as e: self.err(str(e))
-
     def _apply_filters(self):
         rows = self._rows
         cow_id = selected_cow_id(self.c_cow_f)
@@ -486,9 +403,8 @@ class FoodPage(BasePage):
         kw = self._search_e.get().lower()
         if kw:
             rows = [r for r in rows
-                    if any(kw in str(v).lower() for v in (r[1], r[4], r[5]))]  # type, cow, notes
+                    if any(kw in str(v).lower() for v in (r[1], r[4], r[5]))]
         self.tbl.load([r[:5] for r in rows])
-
     def _add(self): FoodDialog(self, on_save=lambda m:(self.ok(m),self._load()))
     def _delete(self):
         r=self.tbl.get_selected()
@@ -498,8 +414,6 @@ class FoodPage(BasePage):
                 conn=get_connection(); conn.execute("DELETE FROM food WHERE id=?",(r[0],))
                 conn.commit(); conn.close(); self.ok("Record deleted."); self._load()
             except Exception as e: self.err(str(e))
-
-
 class FoodDialog(BaseDialog):
     def __init__(self, parent, on_save):
         super().__init__(parent,"Add Feed Record",440,360)
@@ -518,7 +432,6 @@ class FoodDialog(BaseDialog):
         self.c_cow   = self.add_field("Cow",            C(cows))
         self.e_notes = self.add_field("Notes",          E("Optional"))
         self.add_buttons(self._save)
-
     def _save(self):
         try: qty=float(self.e_qty.get()); assert qty>0
         except: messagebox.showwarning("","Enter valid quantity."); return
@@ -533,13 +446,7 @@ class FoodDialog(BaseDialog):
             conn.commit(); conn.close()
             self.on_save(f"Added {qty}kg of {self.c_type.get()}."); self.destroy()
         except Exception as e: messagebox.showerror("Error",str(e))
-
-
-# =============================================================
-#  HEALTH
-# =============================================================
 HEALTH_TYPES = ["Vaccination","Disease","Medicine","Checkup","Other"]
-
 class HealthPage(BasePage):
     def __init__(self, master, user):
         super().__init__(master, user)
@@ -556,7 +463,6 @@ class HealthPage(BasePage):
         self._search_e = StyledEntry(tb, "Search description / med / vet…", 190)
         self._search_e.pack(side="left", padx=(8,0))
         self._search_e.bind("<KeyRelease>", lambda _: self._apply_filters())
-
         card=self._card()
         self.tbl=DataTable(card,[
             ("id","ID",50),("cow","Cow",110),("date","Date",95),
@@ -566,7 +472,6 @@ class HealthPage(BasePage):
         ab=self._action_bar(card)
         DangerButton(ab,"🗑️ Delete",self._delete,width=110).pack(side="left")
         self._load()
-
     def _load(self):
         try:
             c=get_connection().execute(
@@ -578,7 +483,6 @@ class HealthPage(BasePage):
             c.connection.close()
             self._apply_filters()
         except Exception as e: self.err(str(e))
-
     def _apply_filters(self):
         rows = self._rows
         cow_id = selected_cow_id(self.c_cow_f)
@@ -590,9 +494,8 @@ class HealthPage(BasePage):
         kw = self._search_e.get().lower()
         if kw:
             rows = [r for r in rows
-                    if any(kw in str(v).lower() for v in (r[1], r[4], r[5], r[6]))]  # cow, desc, med, vet
+                    if any(kw in str(v).lower() for v in (r[1], r[4], r[5], r[6]))]
         self.tbl.load([r[:8] for r in rows])
-
     def _add(self): HealthDialog(self, on_save=lambda m:(self.ok(m),self._load()))
     def _delete(self):
         r=self.tbl.get_selected()
@@ -602,8 +505,6 @@ class HealthPage(BasePage):
                 conn=get_connection(); conn.execute("DELETE FROM health WHERE id=?",(r[0],))
                 conn.commit(); conn.close(); self.ok("Record deleted."); self._load()
             except Exception as e: self.err(str(e))
-
-
 class HealthDialog(BaseDialog):
     def __init__(self, parent, on_save):
         super().__init__(parent,"Add Health Record",460,440)
@@ -624,7 +525,6 @@ class HealthDialog(BaseDialog):
         self.e_vet  = self.add_field("Vet Name",     E("Vet name"))
         self.e_cost = self.add_field("Cost",         E("0.00"))
         self.add_buttons(self._save)
-
     def _save(self):
         s=self.c_cow.get()
         if "–" not in s: messagebox.showwarning("","Select a cow."); return
@@ -643,16 +543,10 @@ class HealthDialog(BaseDialog):
             conn.commit(); conn.close()
             self.on_save(f"Health record saved."); self.destroy()
         except Exception as e: messagebox.showerror("Error",str(e))
-
-
-# =============================================================
-#  EMPLOYEES
-# =============================================================
 class EmployeesPage(BasePage):
     def __init__(self, master, user):
         super().__init__(master, user)
         self._header("Employee Management","Staff, attendance and salaries")
-
         tabs = ctk.CTkFrame(self, fg_color="transparent")
         tabs.pack(fill="x", padx=20, pady=(0,8))
         self._tab_btns = {}
@@ -664,11 +558,9 @@ class EmployeesPage(BasePage):
                               command=lambda l=lbl: self._tab(l))
             b.pack(side="left", padx=(0,6))
             self._tab_btns[lbl] = b
-
         self._area = ctk.CTkFrame(self, fg_color="transparent")
         self._area.pack(fill="both", expand=True, padx=20, pady=(0,16))
         self._tab("Employees")
-
     def _tab(self, name):
         for k,b in self._tab_btns.items():
             b.configure(fg_color=PRIMARY if k==name else BG_LIGHT,
@@ -677,14 +569,11 @@ class EmployeesPage(BasePage):
         {"Employees": self._emp_tab,
          "Attendance": self._att_tab,
          "Salary": self._sal_tab}[name]()
-
-    # ── Employees tab ──
     def _emp_tab(self):
         tb = ctk.CTkFrame(self._area, fg_color="transparent")
         tb.pack(fill="x", pady=(0,8))
         PrimaryButton(tb,"➕ Add Employee",self._add_emp).pack(side="left",padx=(0,8))
         SecondaryButton(tb,"🔄 Refresh",self._emp_tab).pack(side="left")
-
         card = SectionCard(self._area)
         card.pack(fill="both", expand=True)
         self._etbl = DataTable(card,[
@@ -695,14 +584,12 @@ class EmployeesPage(BasePage):
         ab = ctk.CTkFrame(card,fg_color="transparent")
         ab.pack(fill="x",padx=10,pady=(0,10))
         DangerButton(ab,"🗑️ Delete",self._del_emp,width=110).pack(side="left")
-
         try:
             c=get_connection().execute(
                 "SELECT id,name,role,phone,salary,join_date,status FROM employees ORDER BY id DESC")
             self._etbl.load([tuple(r) for r in c.fetchall()])
             c.connection.close()
         except Exception as e: self.err(str(e))
-
     def _add_emp(self): EmpDialog(self, on_save=lambda m:(self.ok(m),self._emp_tab()))
     def _del_emp(self):
         r=self._etbl.get_selected()
@@ -712,14 +599,11 @@ class EmployeesPage(BasePage):
                 conn=get_connection(); conn.execute("DELETE FROM employees WHERE id=?",(r[0],))
                 conn.commit(); conn.close(); self.ok(f"'{r[1]}' deleted."); self._emp_tab()
             except Exception as e: self.err(str(e))
-
-    # ── Attendance tab ──
     def _att_tab(self):
         tb = ctk.CTkFrame(self._area,fg_color="transparent")
         tb.pack(fill="x",pady=(0,8))
         PrimaryButton(tb,"➕ Mark Attendance",self._add_att).pack(side="left",padx=(0,8))
         SecondaryButton(tb,"🔄 Refresh",self._att_tab).pack(side="left")
-
         card=SectionCard(self._area); card.pack(fill="both",expand=True)
         self._atbl=DataTable(card,[
             ("id","ID",50),("emp","Employee",150),("date","Date",100),("status","Status",100)])
@@ -732,10 +616,7 @@ class EmployeesPage(BasePage):
             self._atbl.load([tuple(r) for r in c.fetchall()])
             c.connection.close()
         except Exception as e: self.err(str(e))
-
     def _add_att(self): AttDialog(self, on_save=lambda m:(self.ok(m),self._att_tab()))
-
-    # ── Salary tab ──
     def _sal_tab(self):
         card=SectionCard(self._area); card.pack(fill="both",expand=True)
         ctk.CTkLabel(card,text="Salary Summary",font=FONT_SUBHEAD,
@@ -755,8 +636,6 @@ class EmployeesPage(BasePage):
                          font=FONT_SUBHEAD,text_color=SUCCESS
                          ).pack(anchor="w",padx=14,pady=(4,12))
         except Exception as e: self.err(str(e))
-
-
 class EmpDialog(BaseDialog):
     def __init__(self, parent, on_save):
         super().__init__(parent,"Add Employee",440,390)
@@ -769,7 +648,6 @@ class EmpDialog(BaseDialog):
         self.e_salary = self.add_field("Salary",      E("Monthly salary"))
         self.e_date   = self.add_field("Join Date",   lambda row: DatePicker(row, today()))
         self.add_buttons(self._save)
-
     def _save(self):
         name=self.e_name.get().strip()
         if not name: messagebox.showwarning("","Name is required."); return
@@ -785,8 +663,6 @@ class EmpDialog(BaseDialog):
             conn.commit(); conn.close()
             self.on_save(f"Employee '{name}' added."); self.destroy()
         except Exception as e: messagebox.showerror("Error",str(e))
-
-
 class AttDialog(BaseDialog):
     def __init__(self, parent, on_save):
         super().__init__(parent,"Mark Attendance",420,290)
@@ -803,7 +679,6 @@ class AttDialog(BaseDialog):
         self.e_date  = self.add_field("Date",       lambda row: DatePicker(row, today()))
         self.c_stat  = self.add_field("Status",     C(ATTENDANCE_STATUS))
         self.add_buttons(self._save)
-
     def _save(self):
         s=self.c_emp.get()
         if "–" not in s: messagebox.showwarning("","Select an employee."); return
@@ -817,16 +692,10 @@ class AttDialog(BaseDialog):
             conn.commit(); conn.close()
             self.on_save(f"Attendance marked: {self.c_stat.get()} on {dt}."); self.destroy()
         except Exception as e: messagebox.showerror("Error",str(e))
-
-
-# =============================================================
-#  EXPENSES & SALES
-# =============================================================
 class ExpensesPage(BasePage):
     def __init__(self, master, user):
         super().__init__(master, user)
         self._header("Expense & Sales","Track farm expenses and milk sales")
-
         tabs=ctk.CTkFrame(self,fg_color="transparent")
         tabs.pack(fill="x",padx=20,pady=(0,8))
         self._tbns={}
@@ -837,19 +706,15 @@ class ExpensesPage(BasePage):
                             command=lambda l=lbl:self._tab(l))
             b.pack(side="left",padx=(0,6))
             self._tbns[lbl]=b
-
         self._area=ctk.CTkFrame(self,fg_color="transparent")
         self._area.pack(fill="both",expand=True,padx=20,pady=(0,16))
         self._tab("Expenses")
-
     def _tab(self,name):
         for k,b in self._tbns.items():
             b.configure(fg_color=PRIMARY if k==name else BG_LIGHT,
                         text_color=TEXT_PRIMARY if k==name else TEXT_SECONDARY)
         for w in self._area.winfo_children(): w.destroy()
         {"Expenses":self._exp_tab,"Sales":self._sal_tab,"Profit":self._profit_tab}[name]()
-
-    # ── Expenses ──
     def _exp_tab(self):
         tb=ctk.CTkFrame(self._area,fg_color="transparent")
         tb.pack(fill="x",pady=(0,8))
@@ -868,7 +733,6 @@ class ExpensesPage(BasePage):
             self._exptbl.load([tuple(r) for r in c.fetchall()])
             c.connection.close()
         except Exception as e: self.err(str(e))
-
     def _add_exp(self): ExpDialog(self,on_save=lambda m:(self.ok(m),self._exp_tab()))
     def _del_exp(self):
         r=self._exptbl.get_selected()
@@ -878,8 +742,6 @@ class ExpensesPage(BasePage):
                 conn=get_connection(); conn.execute("DELETE FROM expenses WHERE id=?",(r[0],))
                 conn.commit(); conn.close(); self.ok("Deleted."); self._exp_tab()
             except Exception as e: self.err(str(e))
-
-    # ── Sales ──
     def _sal_tab(self):
         tb=ctk.CTkFrame(self._area,fg_color="transparent")
         tb.pack(fill="x",pady=(0,8))
@@ -896,16 +758,12 @@ class ExpensesPage(BasePage):
             self._sltbl.load([tuple(r) for r in c.fetchall()])
             c.connection.close()
         except Exception as e: self.err(str(e))
-
     def _add_sale(self): SaleDialog(self,on_save=lambda m:(self.ok(m),self._sal_tab()))
-
-    # ── Profit ──
     def _profit_tab(self):
         card=SectionCard(self._area); card.pack(fill="both",expand=True)
         ctk.CTkLabel(card,text="Profit Calculator",font=FONT_SUBHEAD,
                      text_color=TEXT_PRIMARY).pack(anchor="w",padx=16,pady=(14,4))
         divider(card,padx=16,pady=0)
-
         row=ctk.CTkFrame(card,fg_color="transparent")
         row.pack(fill="x",padx=16,pady=14)
         ctk.CTkLabel(row,text="Start:",font=FONT_SMALL,
@@ -915,13 +773,11 @@ class ExpensesPage(BasePage):
                      text_color=TEXT_SECONDARY,width=40).pack(side="left")
         self._pe=DatePicker(row,width=170); self._pe.pack(side="left",padx=(4,14))
         PrimaryButton(row,"Calculate",self._calc,width=120).pack(side="left")
-
         self._pres=ctk.CTkLabel(card,text="",
                                 font=("Segoe UI",18,"bold"),text_color=SUCCESS)
         self._pres.pack(pady=16)
-
     def _calc(self):
-        s=get_date_or_warn(self._ps,"Start date"); 
+        s=get_date_or_warn(self._ps,"Start date");
         e=get_date_or_warn(self._pe,"End date")
         if s is None or e is None: return
         if not s or not e: self.err("Enter both dates."); return
@@ -936,8 +792,6 @@ class ExpensesPage(BasePage):
                 text=f"Revenue: {rev:,.2f}   |   Expenses: {exp:,.2f}   |   Net: {sign}{net:,.2f}",
                 text_color=SUCCESS if net>=0 else DANGER)
         except Exception as e: self.err(str(e))
-
-
 class ExpDialog(BaseDialog):
     def __init__(self,parent,on_save):
         super().__init__(parent,"Add Expense",430,330)
@@ -949,7 +803,6 @@ class ExpDialog(BaseDialog):
         self.e_amt   = self.add_field("Amount *",     E("Amount"))
         self.e_desc  = self.add_field("Description",  E("Description"))
         self.add_buttons(self._save)
-
     def _save(self):
         try: amt=float(self.e_amt.get()); assert amt>0
         except: messagebox.showwarning("","Enter valid amount."); return
@@ -963,8 +816,6 @@ class ExpDialog(BaseDialog):
             conn.commit(); conn.close()
             self.on_save(f"Expense {self.c_cat.get()} {amt:.2f} saved."); self.destroy()
         except Exception as e: messagebox.showerror("Error",str(e))
-
-
 class SaleDialog(BaseDialog):
     def __init__(self,parent,on_save):
         super().__init__(parent,"Record Milk Sale",440,380)
@@ -981,11 +832,9 @@ class SaleDialog(BaseDialog):
         self.e_liters.bind("<KeyRelease>",self._upd)
         self.e_price.bind("<KeyRelease>",self._upd)
         self.add_buttons(self._save)
-
     def _upd(self,*_):
         try: self._tlbl.configure(text=f"Total: {float(self.e_liters.get())*float(self.e_price.get()):,.2f}")
         except: self._tlbl.configure(text="Total: –")
-
     def _save(self):
         try:
             liters=float(self.e_liters.get()); price=float(self.e_price.get())
@@ -1002,22 +851,15 @@ class SaleDialog(BaseDialog):
             conn.commit(); conn.close()
             self.on_save(f"Sale recorded: {liters}L = {total:,.2f}"); self.destroy()
         except Exception as e: messagebox.showerror("Error",str(e))
-
-
-# =============================================================
-#  REPORTS
-# =============================================================
 class ReportsPage(BasePage):
     def __init__(self, master, user):
         super().__init__(master, user)
         self._header("Reports","Generate farm reports")
-
         ctrl=ctk.CTkFrame(self,fg_color=CARD_BG,corner_radius=10,
                           border_color=CARD_BORDER,border_width=1)
         ctrl.pack(fill="x",padx=20,pady=(0,8))
         row=ctk.CTkFrame(ctrl,fg_color="transparent")
         row.pack(padx=16,pady=12,fill="x")
-
         ctk.CTkLabel(row,text="Type:",font=FONT_SMALL,
                      text_color=TEXT_SECONDARY).pack(side="left")
         self._rtype=StyledCombo(row,["Daily Report","Monthly Report",
@@ -1034,7 +876,6 @@ class ReportsPage(BasePage):
                      text_color=TEXT_SECONDARY).pack(side="left")
         self._re=DatePicker(row,width=140); self._re.pack(side="left",padx=(4,10))
         PrimaryButton(row,"📊 Generate",self._gen,width=120).pack(side="left")
-
         card=SectionCard(self)
         card.pack(fill="both",expand=True,padx=20,pady=(0,16))
         self._out=ctk.CTkTextbox(card,fg_color=INPUT_BG,text_color=TEXT_PRIMARY,
@@ -1043,16 +884,14 @@ class ReportsPage(BasePage):
         self._out.pack(fill="both",expand=True,padx=10,pady=10)
         self._out.configure(state="disabled")
         self._write("Select a report type, enter dates, then click Generate.")
-
     def _write(self,txt):
         self._out.configure(state="normal")
         self._out.delete("1.0","end")
         self._out.insert("end",txt)
         self._out.configure(state="disabled")
-
     def _gen(self):
         rt=self._rtype.get()
-        s=get_date_or_warn(self._rs,"From date"); 
+        s=get_date_or_warn(self._rs,"From date");
         e=get_date_or_warn(self._re,"To date")
         if s is None or e is None: return
         cow_id = selected_cow_id(self._rcow)
@@ -1064,7 +903,6 @@ class ReportsPage(BasePage):
         elif "Expense" in rt:
             if not s or not e: self.err("Enter start and end dates."); return
             self._write(self._expense(s,e))
-
     def _daily(self,dt):
         try:
             conn=get_connection(); c=conn.cursor()
@@ -1083,7 +921,6 @@ class ReportsPage(BasePage):
             L+=[f"{'─'*58}",f"  Net Profit / Loss: {sign}{net:.2f}"]
             conn.close(); return "\n".join(L)
         except Exception as e: return f"Error: {e}"
-
     def _monthly(self,m):
         s=f"{m}-01"; e=f"{m}-31"
         try:
@@ -1103,7 +940,6 @@ class ReportsPage(BasePage):
             L.append(f"  Net Profit/Loss : {sign}{net:,.2f}")
             conn.close(); return "\n".join(L)
         except Exception as e: return f"Error: {e}"
-
     def _milk(self,s,e,cow_id=None):
         try:
             conn=get_connection(); c=conn.cursor()
@@ -1124,7 +960,6 @@ class ReportsPage(BasePage):
             L+=["─"*58,f"  {'GRAND TOTAL':<22}{'':>10}{gt:>12.2f} L"]
             return "\n".join(L)
         except Exception as e: return f"Error: {e}"
-
     def _expense(self,s,e):
         try:
             conn=get_connection(); c=conn.cursor()
@@ -1139,17 +974,10 @@ class ReportsPage(BasePage):
             L+=["─"*58,f"  {'TOTAL':<18}{'':>8}{gt:>14.2f}"]
             return "\n".join(L)
         except Exception as e: return f"Error: {e}"
-
-
-# =============================================================
-#  AI ASSISTANT
-# =============================================================
 class AIPage(BasePage):
     def __init__(self, master, user):
         super().__init__(master, user)
         self._header("AI Assistant","Smart rule-based farm analysis")
-
-        # Button row
         br=ctk.CTkFrame(self,fg_color=CARD_BG,corner_radius=10,
                         border_color=CARD_BORDER,border_width=1)
         br.pack(fill="x",padx=20,pady=(0,8))
@@ -1165,8 +993,6 @@ class AIPage(BasePage):
             (PrimaryButton if typ=="primary" else SecondaryButton)(
                 inner, txt, cmd, width=148
             ).pack(side="left", padx=4)
-
-        # Symptom input bar (hidden initially)
         self._sym_bar = ctk.CTkFrame(self, fg_color=CARD_BG,
                                      corner_radius=8,
                                      border_color=CARD_BORDER, border_width=1)
@@ -1175,8 +1001,6 @@ class AIPage(BasePage):
         self._sym_e.pack(side="left", padx=12, pady=10)
         PrimaryButton(self._sym_bar,"Analyze",self._run_sym,width=110).pack(
             side="left", padx=(0,12), pady=10)
-
-        # Output area
         card=SectionCard(self)
         card.pack(fill="both",expand=True,padx=20,pady=(0,16))
         ctk.CTkLabel(card,text="🤖  AI Suggestions",font=FONT_SUBHEAD,
@@ -1188,15 +1012,12 @@ class AIPage(BasePage):
         self._out.pack(fill="both",expand=True,padx=10,pady=(6,10))
         self._out.configure(state="disabled")
         self._write("Click any button above to run an AI analysis on your farm data.")
-
     def _write(self,txt):
         self._out.configure(state="normal")
         self._out.delete("1.0","end")
         self._out.insert("end",txt)
         self._out.configure(state="disabled")
-
     def _sym_bar_hide(self): self._sym_bar.pack_forget()
-
     def _milk_analysis(self):
         self._sym_bar_hide()
         try:
@@ -1223,7 +1044,6 @@ class AIPage(BasePage):
                     "  Keep maintaining the current feeding & milking schedule."]
             self._write("\n".join(L))
         except Exception as e: self._write(f"Error: {e}")
-
     def _weight_check(self):
         self._sym_bar_hide()
         try:
@@ -1246,7 +1066,6 @@ class AIPage(BasePage):
                 L+=["  ✅  All cows are at a healthy weight!"]
             self._write("\n".join(L))
         except Exception as e: self._write(f"Error: {e}")
-
     def _health_events(self):
         self._sym_bar_hide()
         try:
@@ -1273,12 +1092,10 @@ class AIPage(BasePage):
                        "  Consult a vet if symptoms worsen."]
             self._write("\n".join(L))
         except Exception as e: self._write(f"Error: {e}")
-
     def _symptom_toggle(self):
         self._sym_bar.pack(fill="x",padx=20,pady=(0,8),before=self._out.master)
         self._sym_e.delete(0,"end"); self._sym_e.focus()
         self._write("Type symptoms below and click Analyze.\n\nExamples: fever, cough, not eating, limping, diarrhea")
-
     def _run_sym(self):
         sym=self._sym_e.get().strip().lower()
         if not sym: self.err("Please enter symptoms."); return
@@ -1296,7 +1113,6 @@ class AIPage(BasePage):
         L=[f"🔬  SYMPTOM ANALYSIS: '{sym}'\n"+"─"*54,""]
         for r in res: L+=[f"  {r}",""]
         self._write("\n".join(L))
-
     def _farm_tips(self):
         self._sym_bar_hide()
         tips=[("🕐","Feed cows at the same time every day to maintain routine."),
@@ -1312,11 +1128,6 @@ class AIPage(BasePage):
         L=["💡  GENERAL FARM TIPS\n"+"─"*54]
         for i,(ic,t) in enumerate(tips,1): L.append(f"  {i:>2}. {ic}  {t}")
         self._write("\n".join(L))
-
-
-# =============================================================
-#  USERS  (Admin only)
-# =============================================================
 class UsersPage(BasePage):
     def __init__(self, master, user):
         super().__init__(master, user)
@@ -1329,18 +1140,15 @@ class UsersPage(BasePage):
         tb=self._toolbar()
         PrimaryButton(tb,"➕  Create User",self._create).pack(side="left",padx=(0,8))
         SecondaryButton(tb,"🔄 Refresh",   self._load).pack(side="left")
-
         card=self._card()
         self.tbl=DataTable(card,[
             ("id","ID",50),("user","Username",130),("name","Full Name",160),
             ("role","Role",100),("active","Active",70),("by","Created By",120)])
         self.tbl.pack(fill="both",expand=True,padx=10,pady=10)
-
         ab=self._action_bar(card)
         PrimaryButton(ab,"✅ Activate",   self._activate,   width=120).pack(side="left",padx=(0,8))
         DangerButton(ab, "🚫 Deactivate", self._deactivate, width=130).pack(side="left")
         self._load()
-
     def _load(self):
         try:
             c=get_connection().execute(
@@ -1349,11 +1157,9 @@ class UsersPage(BasePage):
                            for r in c.fetchall()])
             c.connection.close()
         except Exception as e: self.err(str(e))
-
     def _create(self):
         CreateUserDialog(self, current_user=self.user,
                          on_save=lambda m:(self.ok(m),self._load()))
-
     def _deactivate(self):
         r=self.tbl.get_selected()
         if not r: self.info("Select a user."); return
@@ -1364,7 +1170,6 @@ class UsersPage(BasePage):
                 conn.execute("UPDATE users SET is_active=0 WHERE id=?",(r[0],))
                 conn.commit(); conn.close(); self.ok(f"'{r[1]}' deactivated."); self._load()
             except Exception as e: self.err(str(e))
-
     def _activate(self):
         r=self.tbl.get_selected()
         if not r: self.info("Select a user."); return
@@ -1373,24 +1178,19 @@ class UsersPage(BasePage):
             conn.execute("UPDATE users SET is_active=1 WHERE id=?",(r[0],))
             conn.commit(); conn.close(); self.ok(f"'{r[1]}' activated."); self._load()
         except Exception as e: self.err(str(e))
-
-
 class CreateUserDialog(BaseDialog):
     def __init__(self, parent, current_user, on_save):
         super().__init__(parent,"Create User Account",460,440)
         self.current_user = current_user
         self.on_save      = on_save
-
         ctk.CTkLabel(self.body,
                      text="Admin can create Worker, Salesman, Watchman,\n"
                           "Cleaner and Farm Owner accounts.",
                      font=FONT_TINY, text_color=TEXT_MUTED
                      ).pack(anchor="w", pady=(0,8))
-
         def E(ph): return lambda row: StyledEntry(row, ph, 300)
         def C(v):  return lambda row: StyledCombo(row, v, 300)
         def P(ph): return lambda row: PasswordEntry(row, ph, width=300)
-
         self.e_user = self.add_field("Username *", E("Username"))
         self.e_name = self.add_field("Full Name",  E("Full name"))
         self.c_role = self.add_field("Role *",
@@ -1398,23 +1198,19 @@ class CreateUserDialog(BaseDialog):
                                         "cleaner","farm_owner"]))
         self.e_pass = self.add_field("Password *", P("Password (min 4 chars)"))
         self.e_conf = self.add_field("Confirm *",  P("Confirm password"))
-
         self.add_buttons(self._save)
-
     def _save(self):
         username = self.e_user.get().strip()
         fullname = self.e_name.get().strip()
         role     = self.c_role.get()
         pw       = self.e_pass.get()
         cf       = self.e_conf.get()
-
         if not username:
             messagebox.showwarning("","Username is required."); return
         if len(pw) < 4:
             messagebox.showwarning("","Password must be at least 4 characters."); return
         if pw != cf:
             messagebox.showwarning("","Passwords do not match."); return
-
         hashed = hashlib.sha256(pw.encode()).hexdigest()
         try:
             conn=get_connection(); c=conn.cursor()

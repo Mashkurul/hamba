@@ -1,24 +1,8 @@
-# =============================================================
-# modules/notifications.py - Notifications & Alerts Module
-# =============================================================
-# Central place for farm notifications and important alerts:
-#   - View notifications (role-aware)
-#   - View important / emergency alerts
-#   - Create notification (admin / farm owner)
-# =============================================================
-
 from datetime import datetime
 from database import get_connection
 from config import print_header, print_line
-
-
 def get_now():
     return datetime.now().strftime("%Y-%m-%d %H:%M")
-
-
-# ---------------------------------------------------------
-# Create a notification (admin / farm owner)
-# ---------------------------------------------------------
 def create_notification(title, message="", category="General",
                         priority="Normal", target_role="all",
                         created_by="system"):
@@ -38,15 +22,9 @@ def create_notification(title, message="", category="General",
     except Exception as e:
         print(f"  [ERROR]: {e}")
         return None
-
-
-# ---------------------------------------------------------
-# View notifications for the current user's role
-# ---------------------------------------------------------
 def view_notifications(current_user: dict):
     """Show notifications targeted at the current role (or 'all')."""
     print_header("NOTIFICATIONS")
-
     role = current_user.get('role', 'all')
     try:
         conn   = get_connection()
@@ -58,11 +36,9 @@ def view_notifications(current_user: dict):
         """, (role,))
         rows = cursor.fetchall()
         conn.close()
-
         if not rows:
             print("  No notifications.")
             return
-
         for n in rows:
             mark = "[UNREAD]" if not n['is_read'] else "        "
             print(f"  {mark} #{n['id']} {n['title']}  ({n['priority']})")
@@ -72,15 +48,9 @@ def view_notifications(current_user: dict):
             print_line("-")
     except Exception as e:
         print(f"  [ERROR]: {e}")
-
-
-# ---------------------------------------------------------
-# View important / emergency alerts
-# ---------------------------------------------------------
 def view_alerts(current_user: dict):
     """Show only Important / Emergency / Critical priority alerts."""
     print_header("IMPORTANT ALERTS")
-
     role = current_user.get('role', 'all')
     try:
         conn   = get_connection()
@@ -93,11 +63,9 @@ def view_alerts(current_user: dict):
         """, (role,))
         rows = cursor.fetchall()
         conn.close()
-
         if not rows:
             print("  No important alerts right now. Farm is all clear.")
             return
-
         for n in rows:
             print(f"  [{'!':^1}] #{n['id']} {n['title']}  ({n['priority']})")
             if n['message']:
@@ -106,11 +74,6 @@ def view_alerts(current_user: dict):
             print_line("-")
     except Exception as e:
         print(f"  [ERROR]: {e}")
-
-
-# ---------------------------------------------------------
-# Mark a notification as read
-# ---------------------------------------------------------
 def mark_notification_read(notification_id: int):
     """Mark a single notification as read."""
     try:

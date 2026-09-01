@@ -1,23 +1,13 @@
-# =============================================================
-# models/health.py - Health Record Data Model
-# =============================================================
-# Defines the HealthRecord class which maps to the 'health'
-# table in the database.
-# =============================================================
-
-
 class HealthRecord:
     """
     Represents a single health/medical record for a cow.
     Can be a vaccination, disease, or medicine record.
     """
-
     def __init__(self, id=None, cow_id=None, date="",
                  record_type="", description="",
                  medicine="", vet_name="", cost=0.0):
         """
         Constructor for HealthRecord.
-
         Parameters:
             id          : Auto-assigned by database
             cow_id      : ID of the cow
@@ -36,13 +26,11 @@ class HealthRecord:
         self.medicine    = medicine
         self.vet_name    = vet_name
         self.cost        = cost
-
     def __str__(self):
         return (
             f"ID: {self.id} | Cow ID: {self.cow_id} | Date: {self.date} | "
             f"Type: {self.record_type} | Description: {self.description}"
         )
-
     def to_dict(self):
         return {
             "ID"         : self.id,

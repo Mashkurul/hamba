@@ -1,54 +1,23 @@
-# =============================================================
-# database.py - Database Setup & Connection Manager
-# =============================================================
-# This file is responsible for:
-#   1. Creating the SQLite database file (if it doesn't exist)
-#   2. Creating all required tables (if they don't exist)
-#   3. Providing a reusable get_connection() function
-#
-# Every other module imports get_connection() from here.
-# =============================================================
-
-import sqlite3   # Built-in Python library for SQLite
-import hashlib   # For hashing passwords securely
-import os        # For file/folder path operations
-
-# Import path settings from our config file
+import sqlite3
+import hashlib
+import os
 from config import DATABASE_DIR, DATABASE_FILE
-
-
-# ---------------------------------------------------------
-# Function: get_connection
-# ---------------------------------------------------------
 def get_connection():
     """
     Opens and returns a connection to the SQLite database.
-    
     Returns:
         sqlite3.Connection object
-    
     Usage:
         conn = get_connection()
         cursor = conn.cursor()
         ...
         conn.close()
     """
-    # Make sure the /database folder exists
     if not os.path.exists(DATABASE_DIR):
         os.makedirs(DATABASE_DIR)
-
-    # Connect to (or create) the database file
     conn = sqlite3.connect(DATABASE_FILE)
-
-    # This makes rows behave like dictionaries (access by column name)
     conn.row_factory = sqlite3.Row
-
     return conn
-
-
-# ---------------------------------------------------------
-# Function: initialize_database
-# ---------------------------------------------------------
 def initialize_database():
     """
     Creates all tables in the database if they do not already exist.
@@ -56,11 +25,6 @@ def initialize_database():
     """
     conn = get_connection()
     cursor = conn.cursor()
-
-    # --------------------------------------------------
-    # Table: cows
-    # Stores all information about each cow on the farm
-    # --------------------------------------------------
     cursor.execute("""
         CREATE TABLE IF NOT EXISTS cows (
             id              INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -74,11 +38,6 @@ def initialize_database():
             status          TEXT    DEFAULT 'Active'
         )
     """)
-
-    # --------------------------------------------------
-    # Table: milk
-    # Records daily milk production per cow
-    # --------------------------------------------------
     cursor.execute("""
         CREATE TABLE IF NOT EXISTS milk (
             id          INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -90,11 +49,6 @@ def initialize_database():
             FOREIGN KEY (cow_id) REFERENCES cows(id)
         )
     """)
-
-    # --------------------------------------------------
-    # Table: food
-    # Tracks food stock and daily feeding schedules
-    # --------------------------------------------------
     cursor.execute("""
         CREATE TABLE IF NOT EXISTS food (
             id          INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -106,11 +60,6 @@ def initialize_database():
             FOREIGN KEY (cow_id) REFERENCES cows(id)
         )
     """)
-
-    # --------------------------------------------------
-    # Table: health
-    # Stores medical history, vaccinations, and diseases
-    # --------------------------------------------------
     cursor.execute("""
         CREATE TABLE IF NOT EXISTS health (
             id              INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -124,11 +73,6 @@ def initialize_database():
             FOREIGN KEY (cow_id) REFERENCES cows(id)
         )
     """)
-
-    # --------------------------------------------------
-    # Table: employees
-    # Stores staff/worker information
-    # --------------------------------------------------
     cursor.execute("""
         CREATE TABLE IF NOT EXISTS employees (
             id          INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -140,11 +84,6 @@ def initialize_database():
             status      TEXT    DEFAULT 'Active'
         )
     """)
-
-    # --------------------------------------------------
-    # Table: attendance
-    # Records daily employee attendance
-    # --------------------------------------------------
     cursor.execute("""
         CREATE TABLE IF NOT EXISTS attendance (
             id          INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -154,11 +93,6 @@ def initialize_database():
             FOREIGN KEY (employee_id) REFERENCES employees(id)
         )
     """)
-
-    # --------------------------------------------------
-    # Table: expenses
-    # Records all farm expenses
-    # --------------------------------------------------
     cursor.execute("""
         CREATE TABLE IF NOT EXISTS expenses (
             id          INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -168,11 +102,6 @@ def initialize_database():
             description TEXT
         )
     """)
-
-    # --------------------------------------------------
-    # Table: sales
-    # Records milk sales and revenue
-    # --------------------------------------------------
     cursor.execute("""
         CREATE TABLE IF NOT EXISTS sales (
             id          INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -184,13 +113,6 @@ def initialize_database():
             notes       TEXT
         )
     """)
-
-    # --------------------------------------------------
-    # Table: users
-    # Stores login credentials for all system users.
-    # Passwords are stored as SHA-256 hashes (never plain text).
-    # Roles: admin | worker | salesman | watchman | cleaner | farm_owner
-    # --------------------------------------------------
     cursor.execute("""
         CREATE TABLE IF NOT EXISTS users (
             id           INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -202,11 +124,6 @@ def initialize_database():
             is_active    INTEGER DEFAULT 1
         )
     """)
-
-    # --------------------------------------------------
-    # Table: incidents
-    # Security incidents reported by watchmen.
-    # --------------------------------------------------
     cursor.execute("""
         CREATE TABLE IF NOT EXISTS incidents (
             incident_id    INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -220,11 +137,6 @@ def initialize_database():
             status         TEXT    DEFAULT 'Open'
         )
     """)
-
-    # --------------------------------------------------
-    # Table: cleaning
-    # Cleaning & sanitation records reported by cleaners.
-    # --------------------------------------------------
     cursor.execute("""
         CREATE TABLE IF NOT EXISTS cleaning (
             cleaning_id    INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -237,11 +149,6 @@ def initialize_database():
             remarks        TEXT
         )
     """)
-
-    # --------------------------------------------------
-    # Table: notifications
-    # Important alerts / notifications for all roles.
-    # --------------------------------------------------
     cursor.execute("""
         CREATE TABLE IF NOT EXISTS notifications (
             id           INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -255,34 +162,18 @@ def initialize_database():
             is_read      INTEGER DEFAULT 0
         )
     """)
-
-    # --------------------------------------------------
-    # Seed: Create a default admin account if none exists.
-    # Default credentials:  admin / admin123
-    # The user should change this password after first login.
-    # --------------------------------------------------
     cursor.execute("SELECT COUNT(*) as cnt FROM users WHERE role = 'admin'")
     admin_exists = cursor.fetchone()['cnt']
-
     if admin_exists == 0:
-        # Hash the default password using SHA-256
         default_password = hashlib.sha256("admin123".encode()).hexdigest()
         cursor.execute("""
             INSERT INTO users (username, password, role, full_name, created_by)
             VALUES (?, ?, 'admin', 'System Administrator', 'system')
         """, ("admin", default_password))
         print("  [OK] Default admin account created. (user: admin / pass: admin123)")
-
-    # Save all table creations
     conn.commit()
     conn.close()
-
     print("  [OK] Database initialized successfully.")
-
-
-# ---------------------------------------------------------
-# Run this file directly to test database creation
-# ---------------------------------------------------------
 if __name__ == "__main__":
     initialize_database()
     print(f"  Database is ready at: {DATABASE_FILE}")

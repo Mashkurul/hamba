@@ -1,21 +1,11 @@
-# =============================================================
-# models/expense.py - Expense & Sale Data Models
-# =============================================================
-# Defines the Expense and Sale classes which map to the
-# 'expenses' and 'sales' tables in the database.
-# =============================================================
-
-
 class Expense:
     """
     Represents a single farm expense record.
     """
-
     def __init__(self, id=None, date="", category="",
                  amount=0.0, description=""):
         """
         Constructor for Expense.
-
         Parameters:
             id          : Auto-assigned by database
             date        : Date of expense (YYYY-MM-DD)
@@ -28,13 +18,11 @@ class Expense:
         self.category    = category
         self.amount      = amount
         self.description = description
-
     def __str__(self):
         return (
             f"ID: {self.id} | Date: {self.date} | Category: {self.category} | "
             f"Amount: {self.amount} | {self.description}"
         )
-
     def to_dict(self):
         return {
             "ID"         : self.id,
@@ -43,19 +31,15 @@ class Expense:
             "Amount"     : self.amount,
             "Description": self.description
         }
-
-
 class Sale:
     """
     Represents a single milk sale transaction.
     """
-
     def __init__(self, id=None, date="", liters_sold=0.0,
                  price_per_liter=0.0, total_amount=0.0,
                  buyer_name="", notes=""):
         """
         Constructor for Sale.
-
         Parameters:
             id              : Auto-assigned by database
             date            : Date of sale (YYYY-MM-DD)
@@ -72,14 +56,12 @@ class Sale:
         self.total_amount    = total_amount
         self.buyer_name      = buyer_name
         self.notes           = notes
-
     def __str__(self):
         return (
             f"ID: {self.id} | Date: {self.date} | Liters: {self.liters_sold} | "
             f"Price/L: {self.price_per_liter} | Total: {self.total_amount} | "
             f"Buyer: {self.buyer_name}"
         )
-
     def to_dict(self):
         return {
             "ID"             : self.id,

@@ -1,95 +1,28 @@
-# =============================================================
-# config.py - Global Configuration for HAMBA System
-# =============================================================
-# This file stores all the constants and settings used
-# throughout the entire HAMBA project.
-# Any module can import from here to avoid hardcoding values.
-# =============================================================
-
 import os
-
-# ---------------------------------------------------------
-# Application Info
-# ---------------------------------------------------------
-APP_NAME    = "HAMBA"
-APP_TITLE   = "HAMBA – AI Based Cow Management System"
+APP_NAME    = "HAMBAA"
+APP_TITLE   = "HAMBAA – AI Based Cow Management System"
 APP_VERSION = "1.0.0"
-
-# ---------------------------------------------------------
-# Database Configuration
-# ---------------------------------------------------------
-# Get the directory where this config.py file lives
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
-
-# Path to the database folder and file
 DATABASE_DIR  = os.path.join(BASE_DIR, "database")
 DATABASE_FILE = os.path.join(DATABASE_DIR, "hamba.db")
-
-# ---------------------------------------------------------
-# Display / UI Settings
-# ---------------------------------------------------------
-# Width of the separator line in the terminal
 LINE_WIDTH = 50
-
-# Separator characters
-LINE_CHAR  = "="   # used for headers
-LINE_CHAR2 = "-"   # used for sub-sections
-
-# ---------------------------------------------------------
-# Status Options for Cows
-# ---------------------------------------------------------
+LINE_CHAR  = "="
+LINE_CHAR2 = "-"
 COW_STATUS_OPTIONS = ["Active", "Sold", "Dead", "Sick"]
-
-# ---------------------------------------------------------
-# Gender Options
-# ---------------------------------------------------------
 GENDER_OPTIONS = ["Female", "Male"]
-
-# ---------------------------------------------------------
-# Employee Roles
-# ---------------------------------------------------------
 EMPLOYEE_ROLES = ["Farmer", "Veterinarian", "Manager", "Cleaner", "Guard"]
-
-# ---------------------------------------------------------
-# Attendance Status
-# ---------------------------------------------------------
 ATTENDANCE_STATUS = ["Present", "Absent", "Leave"]
-
-# ---------------------------------------------------------
-# Expense Categories
-# ---------------------------------------------------------
 EXPENSE_CATEGORIES = ["Feed", "Medicine", "Salary", "Equipment", "Other"]
-
-# ---------------------------------------------------------
-# Food Types
-# ---------------------------------------------------------
 FOOD_TYPES = ["Hay", "Grass", "Silage", "Concentrate", "Grain", "Mineral", "Other"]
-
-# ---------------------------------------------------------
-# User Roles
-# ---------------------------------------------------------
-# Admin     : Full access to everything, can create users
-# Worker    : Can manage cows, milk, food, health
-# Salesman  : Can only access milk sales and expense/sales
-# Watchman  : Security & daily monitoring (attendance, incidents)
-# Cleaner   : Cleanliness & sanitation (cleaning tasks, records)
-# Farm Owner: Highest-level operational user (full farm management)
 USER_ROLES = ["admin", "worker", "salesman", "watchman", "cleaner", "farm_owner"]
-
-# Permissions per role — list of menu option numbers allowed
-# Maps role name → set of allowed main-menu choices
 ROLE_PERMISSIONS = {
-    "admin":      {"1", "2", "3", "4", "5", "6", "7", "8"},   # full access
-    "worker":     {"1", "2", "3", "4", "8"},                  # cows, milk, food, health, AI
-    "salesman":   {"2", "6", "7"},                            # milk, sales, reports
-    "watchman":   {"1", "2", "8"},                            # cows (view), milk, AI (reports)
-    "cleaner":    {"1", "2", "8"},                            # cows (view), milk, AI (reports)
-    "farm_owner": {"1", "2", "3", "4", "5", "6", "7", "8"},   # full access
+    "admin":      {"1", "2", "3", "4", "5", "6", "7", "8"},
+    "worker":     {"1", "2", "3", "4", "8"},
+    "salesman":   {"2", "6", "7"},
+    "watchman":   {"1", "2", "8"},
+    "cleaner":    {"1", "2", "8"},
+    "farm_owner": {"1", "2", "3", "4", "5", "6", "7", "8"},
 }
-
-# ---------------------------------------------------------
-# Watchman / Security
-# ---------------------------------------------------------
 INCIDENT_TYPES = [
     "Theft", "Unauthorized Visitor", "Animal Missing",
     "Equipment Damage", "Fire", "Power Failure",
@@ -97,10 +30,6 @@ INCIDENT_TYPES = [
 ]
 INCIDENT_PRIORITY = ["Low", "Medium", "High", "Critical"]
 INCIDENT_STATUS   = ["Open", "In Progress", "Resolved", "Closed"]
-
-# ---------------------------------------------------------
-# Cleaner / Sanitation
-# ---------------------------------------------------------
 CLEANING_AREAS = [
     "Cow Shed", "Feeding Area", "Milking Area", "Storage Room",
     "Water Area", "Medical Area", "Equipment Area", "Waste Disposal Area",
@@ -110,28 +39,13 @@ CLEANING_TYPES = [
     "Water Area Cleaning", "Feeding Area Cleaning", "Milking Area Cleaning",
 ]
 CLEANING_STATUS = ["Pending", "In Progress", "Completed"]
-
-# ---------------------------------------------------------
-# Notifications
-# ---------------------------------------------------------
 NOTIFICATION_CATEGORIES = ["General", "Security", "Health", "Maintenance", "Feed", "Finance"]
 NOTIFICATION_PRIORITY   = ["Normal", "Important", "Emergency", "Critical"]
-
-# ---------------------------------------------------------
-# Helper: Print a full-width separator line
-# ---------------------------------------------------------
 def print_line(char=LINE_CHAR):
     """Print a separator line of LINE_WIDTH characters."""
     print(char * LINE_WIDTH)
-
-# ---------------------------------------------------------
-# Helper: Print a centered title inside separator lines
-# ---------------------------------------------------------
 def print_header(title):
     """Print a formatted section header."""
     print_line()
     print(f"  {title}")
     print_line()
-
-
-
