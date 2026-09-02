@@ -1,24 +1,13 @@
-# =============================================================
-# models/cow.py - Cow Data Model
-# =============================================================
-# This file defines the Cow class.
-# A "model" is just a Python class that represents one record
-# in the database. It holds the data fields for a single cow.
-# =============================================================
-
-
 class Cow:
     """
     Represents a single cow on the farm.
     This class maps directly to the 'cows' table in the database.
     """
-
     def __init__(self, id=None, name="", breed="", age=0.0,
                  weight=0.0, gender="Female", color="",
                  purchase_date="", status="Active"):
         """
         Constructor – called when you create a new Cow object.
-
         Parameters:
             id            : Auto-assigned by the database
             name          : Cow's name (e.g. "Bella")
@@ -39,7 +28,6 @@ class Cow:
         self.color         = color
         self.purchase_date = purchase_date
         self.status        = status
-
     def __str__(self):
         """
         Returns a readable string when you print a Cow object.
@@ -50,7 +38,6 @@ class Cow:
             f"Age: {self.age} yrs | Weight: {self.weight} kg | "
             f"Gender: {self.gender} | Status: {self.status}"
         )
-
     def to_dict(self):
         """
         Converts the cow object to a dictionary.

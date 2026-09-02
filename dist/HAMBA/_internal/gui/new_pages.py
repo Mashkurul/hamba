@@ -1,17 +1,6 @@
-# =============================================================
-# gui/new_pages.py  –  Watchman / Cleaner / Farm Owner pages
-# =============================================================
-# Pages added for the new roles:
-#   IncidentsPage     (Watchman / Farm Owner)
-#   CleaningPage      (Cleaner / Farm Owner)
-#   NotificationsPage (all roles)
-#   OwnerDashboardPage(Farm Owner)
-# =============================================================
-
 from datetime import date, datetime
 from tkinter import messagebox
 import customtkinter as ctk
-
 from database import get_connection
 from config import (INCIDENT_TYPES, INCIDENT_PRIORITY, INCIDENT_STATUS,
                     CLEANING_AREAS, CLEANING_TYPES, CLEANING_STATUS,
@@ -22,12 +11,8 @@ from gui.widgets import (PrimaryButton, DangerButton, SecondaryButton,
                          SectionCard, PageHeader, DataTable,
                          NotificationBar, BaseDialog, DatePicker,
                          form_row, divider)
-
-
 def today(): return str(date.today())
 def now_time(): return datetime.now().strftime("%H:%M")
-
-
 def get_date_or_warn(entry, label):
     """Validate a date entry; warn on impossible dates. Returns str or None."""
     raw = entry.get().strip()
@@ -40,21 +25,14 @@ def get_date_or_warn(entry, label):
                                f"{label}: '{raw}' is not a valid date.\n"
                                "Use the 📅 calendar or format YYYY-MM-DD.")
         return None
-
-
-# =============================================================
-#  INCIDENTS  (Watchman / Farm Owner)
-# =============================================================
 class IncidentsPage(ctk.CTkFrame):
     def __init__(self, master, user):
         super().__init__(master, fg_color=BG_DARK, corner_radius=0)
         self.user = user
         self.notify = NotificationBar(self)
-
         PageHeader(self, "Farm Incidents", "Record and monitor security incidents"
                    ).pack(anchor="w", padx=24, pady=(18, 10))
         self.notify.pack_forget()
-
         tb = ctk.CTkFrame(self, fg_color="transparent")
         tb.pack(fill="x", padx=20, pady=(0, 8))
         PrimaryButton(tb, "➕  Record Incident", self._add).pack(side="left", padx=(0, 8))
@@ -63,7 +41,6 @@ class IncidentsPage(ctk.CTkFrame):
         self._search_e.pack(side="left")
         self._search_e.bind("<KeyRelease>",
                             lambda _: self._filter(self._search_e.get()))
-
         card = SectionCard(self)
         card.pack(fill="both", expand=True, padx=20, pady=(0, 16))
         self.tbl = DataTable(card, [
@@ -72,15 +49,12 @@ class IncidentsPage(ctk.CTkFrame):
             ("loc", "Location", 110), ("by", "Reported By", 90),
         ])
         self.tbl.pack(fill="both", expand=True, padx=10, pady=10)
-
         ab = ctk.CTkFrame(card, fg_color="transparent")
         ab.pack(fill="x", padx=10, pady=(0, 10))
         PrimaryButton(ab, "✏️  Update Status", self._update_status,
                       width=140).pack(side="left")
-
         self._rows = []
         self._load()
-
     def _load(self):
         try:
             c = get_connection().execute(
@@ -92,36 +66,28 @@ class IncidentsPage(ctk.CTkFrame):
             self.tbl.load(self._rows)
         except Exception as e:
             self.err(str(e))
-
     def _filter(self, kw):
         kw = kw.lower()
         self.tbl.load([r for r in self._rows
                        if any(kw in str(v).lower() for v in r)])
-
     def _add(self):
         IncidentDialog(self, user=self.user,
                        on_save=lambda m: (self.ok(m), self._load()))
-
     def _update_status(self):
         r = self.tbl.get_selected()
         if not r:
             self.info("Select an incident to update."); return
         StatusDialog(self, incident=r,
                      on_save=lambda m: (self.ok(m), self._load()))
-
     def ok(self, m):   self.notify.show(m, "success")
     def err(self, m):  self.notify.show(m, "error")
     def info(self, m): self.notify.show(m, "info")
-
-
 class IncidentDialog(BaseDialog):
     def __init__(self, parent, user, on_save):
         super().__init__(parent, "Record Incident", 480, 470)
         self.user, self.on_save = user, on_save
-
         def E(ph): return lambda row: StyledEntry(row, ph, 300)
         def C(v):  return lambda row: StyledCombo(row, v, 300)
-
         self.c_type  = self.add_field("Incident Type *", C(INCIDENT_TYPES))
         self.e_desc  = self.add_field("Description *",   E("What happened?"))
         self.e_date  = self.add_field("Date",            lambda row: DatePicker(row, today()))
@@ -130,7 +96,6 @@ class IncidentDialog(BaseDialog):
         self.c_pri   = self.add_field("Priority",        C(INCIDENT_PRIORITY))
         self.e_time.insert(0, now_time())
         self.add_buttons(self._save)
-
     def _save(self):
         desc = self.e_desc.get().strip()
         if not desc:
@@ -150,8 +115,6 @@ class IncidentDialog(BaseDialog):
             self.on_save("Incident recorded."); self.destroy()
         except Exception as e:
             messagebox.showerror("Error", str(e))
-
-
 class StatusDialog(BaseDialog):
     def __init__(self, parent, incident, on_save):
         super().__init__(parent, f"Update Incident #{incident[0]}", 420, 240)
@@ -163,7 +126,6 @@ class StatusDialog(BaseDialog):
         self.c_status = self.add_field("Status", lambda row: StyledCombo(row, INCIDENT_STATUS, 260))
         self.c_status.set(incident[3])
         self.add_buttons(self._save)
-
     def _save(self):
         try:
             conn = get_connection()
@@ -173,27 +135,19 @@ class StatusDialog(BaseDialog):
             self.on_save(f"Status → {self.c_status.get()}"); self.destroy()
         except Exception as e:
             messagebox.showerror("Error", str(e))
-
-
-# =============================================================
-#  CLEANING  (Cleaner / Farm Owner)
-# =============================================================
 class CleaningPage(ctk.CTkFrame):
     def __init__(self, master, user):
         super().__init__(master, fg_color=BG_DARK, corner_radius=0)
         self.user = user
         self.notify = NotificationBar(self)
-
         PageHeader(self, "Cleaning & Sanitation",
                    "Track cleaning tasks and sanitation records"
                    ).pack(anchor="w", padx=24, pady=(18, 10))
         self.notify.pack_forget()
-
         tb = ctk.CTkFrame(self, fg_color="transparent")
         tb.pack(fill="x", padx=20, pady=(0, 8))
         PrimaryButton(tb, "➕  Add Cleaning Record", self._add).pack(side="left", padx=(0, 8))
         SecondaryButton(tb, "🔄 Refresh", self._load).pack(side="left")
-
         card = SectionCard(self)
         card.pack(fill="both", expand=True, padx=20, pady=(0, 16))
         self.tbl = DataTable(card, [
@@ -202,15 +156,12 @@ class CleaningPage(ctk.CTkFrame):
             ("remarks", "Remarks", 160),
         ])
         self.tbl.pack(fill="both", expand=True, padx=10, pady=10)
-
         ab = ctk.CTkFrame(card, fg_color="transparent")
         ab.pack(fill="x", padx=10, pady=(0, 10))
         PrimaryButton(ab, "✅  Mark Complete", self._complete,
                       width=140).pack(side="left", padx=(0, 8))
         DangerButton(ab, "⚠️  Report Problem", self._report, width=140).pack(side="left")
-
         self._load()
-
     def _load(self):
         try:
             c = get_connection().execute(
@@ -221,11 +172,9 @@ class CleaningPage(ctk.CTkFrame):
             c.connection.close()
         except Exception as e:
             self.err(str(e))
-
     def _add(self):
         CleaningDialog(self, user=self.user,
                        on_save=lambda m: (self.ok(m), self._load()))
-
     def _complete(self):
         r = self.tbl.get_selected()
         if not r:
@@ -237,7 +186,6 @@ class CleaningPage(ctk.CTkFrame):
             self.ok(f"Task #{r[0]} marked Completed."); self._load()
         except Exception as e:
             self.err(str(e))
-
     def _report(self):
         r = self.tbl.get_selected()
         if not r:
@@ -252,20 +200,15 @@ class CleaningPage(ctk.CTkFrame):
             self.ok("Problem flagged."); self._load()
         except Exception as e:
             self.err(str(e))
-
     def ok(self, m):   self.notify.show(m, "success")
     def err(self, m):  self.notify.show(m, "error")
     def info(self, m): self.notify.show(m, "info")
-
-
 class CleaningDialog(BaseDialog):
     def __init__(self, parent, user, on_save):
         super().__init__(parent, "Add Cleaning Record", 480, 440)
         self.user, self.on_save = user, on_save
-
         def E(ph): return lambda row: StyledEntry(row, ph, 300)
         def C(v):  return lambda row: StyledCombo(row, v, 300)
-
         self.c_area  = self.add_field("Area *",          C(CLEANING_AREAS))
         self.c_type  = self.add_field("Cleaning Type *", C(CLEANING_TYPES))
         self.e_date  = self.add_field("Date",            lambda row: DatePicker(row, today()))
@@ -274,7 +217,6 @@ class CleaningDialog(BaseDialog):
         self.e_rem   = self.add_field("Remarks",         E("Optional"))
         self.e_time.insert(0, now_time())
         self.add_buttons(self._save)
-
     def _save(self):
         dt = get_date_or_warn(self.e_date, "Date")
         if dt is None: return
@@ -290,27 +232,19 @@ class CleaningDialog(BaseDialog):
             self.on_save("Cleaning record saved."); self.destroy()
         except Exception as e:
             messagebox.showerror("Error", str(e))
-
-
-# =============================================================
-#  NOTIFICATIONS  (all roles)
-# =============================================================
 class NotificationsPage(ctk.CTkFrame):
     def __init__(self, master, user):
         super().__init__(master, fg_color=BG_DARK, corner_radius=0)
         self.user = user
         self.notify = NotificationBar(self)
-
         PageHeader(self, "Notifications", "Farm notices and important alerts"
                    ).pack(anchor="w", padx=24, pady=(18, 10))
         self.notify.pack_forget()
-
         tb = ctk.CTkFrame(self, fg_color="transparent")
         tb.pack(fill="x", padx=20, pady=(0, 8))
         PrimaryButton(tb, "➕  New Notification", self._add,
                       width=170).pack(side="left", padx=(0, 8))
         SecondaryButton(tb, "🔄 Refresh", self._load).pack(side="left")
-
         card = SectionCard(self)
         card.pack(fill="both", expand=True, padx=20, pady=(0, 16))
         self.tbl = DataTable(card, [
@@ -319,13 +253,11 @@ class NotificationsPage(ctk.CTkFrame):
             ("date", "Created", 130), ("read", "Read", 55),
         ])
         self.tbl.pack(fill="both", expand=True, padx=10, pady=10)
-
         ab = ctk.CTkFrame(card, fg_color="transparent")
         ab.pack(fill="x", padx=10, pady=(0, 10))
         PrimaryButton(ab, "✓  Mark Read", self._mark_read,
                       width=120).pack(side="left")
         self._load()
-
     def _load(self):
         try:
             role = self.user.get("role", "all")
@@ -339,11 +271,9 @@ class NotificationsPage(ctk.CTkFrame):
             c.connection.close()
         except Exception as e:
             self.err(str(e))
-
     def _add(self):
         NotificationDialog(self, user=self.user,
                            on_save=lambda m: (self.ok(m), self._load()))
-
     def _mark_read(self):
         r = self.tbl.get_selected()
         if not r:
@@ -355,20 +285,15 @@ class NotificationsPage(ctk.CTkFrame):
             self.ok("Marked as read."); self._load()
         except Exception as e:
             self.err(str(e))
-
     def ok(self, m):   self.notify.show(m, "success")
     def err(self, m):  self.notify.show(m, "error")
     def info(self, m): self.notify.show(m, "info")
-
-
 class NotificationDialog(BaseDialog):
     def __init__(self, parent, user, on_save):
         super().__init__(parent, "New Notification", 480, 460)
         self.user, self.on_save = user, on_save
-
         def E(ph): return lambda row: StyledEntry(row, ph, 300)
         def C(v):  return lambda row: StyledCombo(row, v, 300)
-
         self.e_title = self.add_field("Title *",        E("Notification title"))
         self.e_msg   = self.add_field("Message",        E("Details"))
         self.c_cat   = self.add_field("Category",       C(NOTIFICATION_CATEGORIES))
@@ -377,7 +302,6 @@ class NotificationDialog(BaseDialog):
                                                            "salesman", "watchman",
                                                            "cleaner", "farm_owner"]))
         self.add_buttons(self._save)
-
     def _save(self):
         title = self.e_title.get().strip()
         if not title:
@@ -395,30 +319,20 @@ class NotificationDialog(BaseDialog):
             self.on_save("Notification sent."); self.destroy()
         except Exception as e:
             messagebox.showerror("Error", str(e))
-
-
-# =============================================================
-#  OWNER DASHBOARD  (Farm Owner)
-# =============================================================
 class OwnerDashboardPage(ctk.CTkFrame):
     """Farm owner's high-level farm summary + monitoring."""
-
     def __init__(self, master, user):
         super().__init__(master, fg_color=BG_DARK, corner_radius=0)
         self.user = user
         self.notify = NotificationBar(self)
-
         PageHeader(self, "Farm Overview",
                    "Complete farm statistics at a glance"
                    ).pack(anchor="w", padx=24, pady=(18, 10))
         self.notify.pack_forget()
-
         try:
             stats = self._stats()
         except Exception:
             stats = {}
-
-        # ── Stat cards ──
         sf = ctk.CTkFrame(self, fg_color="transparent")
         sf.pack(fill="x", padx=20, pady=(0, 12))
         cards = [
@@ -434,14 +348,11 @@ class OwnerDashboardPage(ctk.CTkFrame):
             StatCard(sf, t, v, ic, col).grid(
                 row=0, column=i, padx=6, pady=4, sticky="ew", ipady=4)
             sf.grid_columnconfigure(i, weight=1)
-
-        # ── Two info panels ──
         lower = ctk.CTkFrame(self, fg_color="transparent")
         lower.pack(fill="both", expand=True, padx=20, pady=(0, 16))
         lower.grid_columnconfigure(0, weight=1)
         lower.grid_columnconfigure(1, weight=1)
         lower.grid_rowconfigure(0, weight=1)
-
         def panel(col, title, lines):
             c = SectionCard(lower)
             c.grid(row=0, column=col, padx=(0, 8) if col == 0 else (8, 0),
@@ -456,10 +367,8 @@ class OwnerDashboardPage(ctk.CTkFrame):
             box.insert("end", lines)
             box.configure(state="disabled")
             return c
-
         panel(0, "📊  Farm Health", self._health_lines(stats))
         panel(1, "🕒  Recent Activity", self._activity_lines())
-
     def _stats(self):
         conn = get_connection(); c = conn.cursor(); m = today()[:7]
         def q(sql, *a):
@@ -479,7 +388,6 @@ class OwnerDashboardPage(ctk.CTkFrame):
             "incidents":  q("SELECT COUNT(*) FROM incidents WHERE status IN ('Open','In Progress')"),
             "cleaning":   q("SELECT COUNT(*) FROM cleaning WHERE status IN ('Pending','In Progress')"),
         }
-
     def _health_lines(self, s):
         lines = []
         lines.append(f"  Low stock items      : {s.get('low_stock', 0)}")
@@ -493,7 +401,6 @@ class OwnerDashboardPage(ctk.CTkFrame):
         lines.append(f"  Month expenses       : {s.get('exp', 0):,.2f}")
         lines.append(f"  Month net            : {net:,.2f}")
         return "\n".join(lines)
-
     def _activity_lines(self):
         lines = []
         try:
@@ -527,7 +434,6 @@ class OwnerDashboardPage(ctk.CTkFrame):
         if len(lines) == 0:
             lines.append("  No recent activity.")
         return "\n".join(lines)
-
     def ok(self, m):   self.notify.show(m, "success")
     def err(self, m):  self.notify.show(m, "error")
     def info(self, m): self.notify.show(m, "info")

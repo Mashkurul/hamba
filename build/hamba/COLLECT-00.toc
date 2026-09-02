@@ -4110,6 +4110,34 @@
    'D:\\PERSONAL PROJECT\\face scanner in '
    'python\\face_scanner\\HAMBA\\models\\__init__.py',
    'DATA'),
+  ('models\\__pycache__\\__init__.cpython-314.pyc',
+   'D:\\PERSONAL PROJECT\\face scanner in '
+   'python\\face_scanner\\HAMBA\\models\\__pycache__\\__init__.cpython-314.pyc',
+   'DATA'),
+  ('models\\__pycache__\\cow.cpython-314.pyc',
+   'D:\\PERSONAL PROJECT\\face scanner in '
+   'python\\face_scanner\\HAMBA\\models\\__pycache__\\cow.cpython-314.pyc',
+   'DATA'),
+  ('models\\__pycache__\\employee.cpython-314.pyc',
+   'D:\\PERSONAL PROJECT\\face scanner in '
+   'python\\face_scanner\\HAMBA\\models\\__pycache__\\employee.cpython-314.pyc',
+   'DATA'),
+  ('models\\__pycache__\\expense.cpython-314.pyc',
+   'D:\\PERSONAL PROJECT\\face scanner in '
+   'python\\face_scanner\\HAMBA\\models\\__pycache__\\expense.cpython-314.pyc',
+   'DATA'),
+  ('models\\__pycache__\\food.cpython-314.pyc',
+   'D:\\PERSONAL PROJECT\\face scanner in '
+   'python\\face_scanner\\HAMBA\\models\\__pycache__\\food.cpython-314.pyc',
+   'DATA'),
+  ('models\\__pycache__\\health.cpython-314.pyc',
+   'D:\\PERSONAL PROJECT\\face scanner in '
+   'python\\face_scanner\\HAMBA\\models\\__pycache__\\health.cpython-314.pyc',
+   'DATA'),
+  ('models\\__pycache__\\milk.cpython-314.pyc',
+   'D:\\PERSONAL PROJECT\\face scanner in '
+   'python\\face_scanner\\HAMBA\\models\\__pycache__\\milk.cpython-314.pyc',
+   'DATA'),
   ('models\\cow.py',
    'D:\\PERSONAL PROJECT\\face scanner in '
    'python\\face_scanner\\HAMBA\\models\\cow.py',
@@ -4138,9 +4166,61 @@
    'D:\\PERSONAL PROJECT\\face scanner in '
    'python\\face_scanner\\HAMBA\\modules\\__init__.py',
    'DATA'),
+  ('modules\\__pycache__\\__init__.cpython-314.pyc',
+   'D:\\PERSONAL PROJECT\\face scanner in '
+   'python\\face_scanner\\HAMBA\\modules\\__pycache__\\__init__.cpython-314.pyc',
+   'DATA'),
+  ('modules\\__pycache__\\ai_assistant.cpython-314.pyc',
+   'D:\\PERSONAL PROJECT\\face scanner in '
+   'python\\face_scanner\\HAMBA\\modules\\__pycache__\\ai_assistant.cpython-314.pyc',
+   'DATA'),
+  ('modules\\__pycache__\\auth.cpython-314.pyc',
+   'D:\\PERSONAL PROJECT\\face scanner in '
+   'python\\face_scanner\\HAMBA\\modules\\__pycache__\\auth.cpython-314.pyc',
+   'DATA'),
+  ('modules\\__pycache__\\cleaning_management.cpython-314.pyc',
+   'D:\\PERSONAL PROJECT\\face scanner in '
+   'python\\face_scanner\\HAMBA\\modules\\__pycache__\\cleaning_management.cpython-314.pyc',
+   'DATA'),
+  ('modules\\__pycache__\\cow_management.cpython-314.pyc',
+   'D:\\PERSONAL PROJECT\\face scanner in '
+   'python\\face_scanner\\HAMBA\\modules\\__pycache__\\cow_management.cpython-314.pyc',
+   'DATA'),
+  ('modules\\__pycache__\\employee_management.cpython-314.pyc',
+   'D:\\PERSONAL PROJECT\\face scanner in '
+   'python\\face_scanner\\HAMBA\\modules\\__pycache__\\employee_management.cpython-314.pyc',
+   'DATA'),
+  ('modules\\__pycache__\\expense_management.cpython-314.pyc',
+   'D:\\PERSONAL PROJECT\\face scanner in '
+   'python\\face_scanner\\HAMBA\\modules\\__pycache__\\expense_management.cpython-314.pyc',
+   'DATA'),
+  ('modules\\__pycache__\\farm_owner.cpython-314.pyc',
+   'D:\\PERSONAL PROJECT\\face scanner in '
+   'python\\face_scanner\\HAMBA\\modules\\__pycache__\\farm_owner.cpython-314.pyc',
+   'DATA'),
+  ('modules\\__pycache__\\food_management.cpython-314.pyc',
+   'D:\\PERSONAL PROJECT\\face scanner in '
+   'python\\face_scanner\\HAMBA\\modules\\__pycache__\\food_management.cpython-314.pyc',
+   'DATA'),
+  ('modules\\__pycache__\\health_management.cpython-314.pyc',
+   'D:\\PERSONAL PROJECT\\face scanner in '
+   'python\\face_scanner\\HAMBA\\modules\\__pycache__\\health_management.cpython-314.pyc',
+   'DATA'),
+  ('modules\\__pycache__\\incident_management.cpython-314.pyc',
+   'D:\\PERSONAL PROJECT\\face scanner in '
+   'python\\face_scanner\\HAMBA\\modules\\__pycache__\\incident_management.cpython-314.pyc',
+   'DATA'),
   ('modules\\__pycache__\\milk_management.cpython-314.pyc',
    'D:\\PERSONAL PROJECT\\face scanner in '
    'python\\face_scanner\\HAMBA\\modules\\__pycache__\\milk_management.cpython-314.pyc',
+   'DATA'),
+  ('modules\\__pycache__\\notifications.cpython-314.pyc',
+   'D:\\PERSONAL PROJECT\\face scanner in '
+   'python\\face_scanner\\HAMBA\\modules\\__pycache__\\notifications.cpython-314.pyc',
+   'DATA'),
+  ('modules\\__pycache__\\reports.cpython-314.pyc',
+   'D:\\PERSONAL PROJECT\\face scanner in '
+   'python\\face_scanner\\HAMBA\\modules\\__pycache__\\reports.cpython-314.pyc',
    'DATA'),
   ('modules\\ai_assistant.py',
    'D:\\PERSONAL PROJECT\\face scanner in '
